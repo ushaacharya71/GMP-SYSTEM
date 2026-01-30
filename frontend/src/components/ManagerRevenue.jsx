@@ -1,28 +1,45 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import api from "../api/axios";
 
 const ManagerRevenue = () => {
   const [type, setType] = useState("daily");
-  const [data, setData] = useState([]);
+  const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchRevenue();
-  }, [type]);
-
-  const fetchRevenue = async () => {
+  const fetchRevenue = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get(
         `/performance/manager-revenue?type=${type}`
       );
-      setData(res.data || []);
+
+      // ✅ Normalize response (bullet-proof)
+      const normalized = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data?.revenue)
+        ? res.data.revenue
+        : [];
+
+      setRawData(normalized);
     } catch (err) {
       console.error("Manager revenue fetch error", err);
+      setRawData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [type]);
+
+  useEffect(() => {
+    fetchRevenue();
+  }, [fetchRevenue]);
+
+  // ✅ Always map-safe
+  const data = useMemo(
+    () => (Array.isArray(rawData) ? rawData : []),
+    [rawData]
+  );
 
   const rankAccent = [
     "border-emerald-500",
@@ -47,28 +64,20 @@ const ManagerRevenue = () => {
 
         {/* TOGGLE */}
         <div className="flex bg-gray-100 rounded-xl p-1 w-fit">
-          <button
-            onClick={() => setType("daily")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition
-              ${
-                type === "daily"
-                  ? "bg-white shadow-sm text-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-          >
-            Daily
-          </button>
-          <button
-            onClick={() => setType("monthly")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition
-              ${
-                type === "monthly"
-                  ? "bg-white shadow-sm text-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-          >
-            Monthly
-          </button>
+          {["daily", "monthly"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setType(t)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition
+                ${
+                  type === t
+                    ? "bg-white shadow-sm text-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -85,12 +94,11 @@ const ManagerRevenue = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {data.map((row, index) => (
             <div
-              key={row.managerId}
+              key={row.managerId ?? row._id ?? index}
               className={`relative bg-white border border-gray-200 rounded-xl p-5
                 shadow-sm hover:shadow-md transition
                 border-l-4 ${rankAccent[index] || "border-gray-300"}`}
             >
-              {/* RANK */}
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold text-gray-500 uppercase">
                   Rank #{index + 1}
@@ -100,15 +108,13 @@ const ManagerRevenue = () => {
                 </span>
               </div>
 
-              {/* NAME */}
               <h3 className="text-base font-semibold text-gray-900">
-                {row.managerName}
+                {row.managerName || "—"}
               </h3>
 
-              {/* REVENUE */}
               <div className="mt-4">
                 <p className="text-3xl font-semibold text-gray-900 tracking-tight">
-                  ₹ {row.revenue.toLocaleString()}
+                  ₹ {Number(row.revenue ?? 0).toLocaleString()}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   Team revenue ({type})

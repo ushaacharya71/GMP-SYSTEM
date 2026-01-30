@@ -1,60 +1,39 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 
 const ManagerStipend = () => {
+  const [manager, setManager] = useState(null);
   const [interns, setInterns] = useState([]);
   const [stipends, setStipends] = useState({});
-  const [month, setMonth] = useState(
-    new Date().toISOString().slice(0, 7) // YYYY-MM
-  );
-  const [loading, setLoading] = useState(false);
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [loadingId, setLoadingId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  /* ------------------------------------
-     FETCH ASSIGNED INTERNS
-  ------------------------------------ */
+  /* ================= AUTH GUARD ================= */
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user || user.role !== "manager") {
+      window.location.href = "/";
+      return;
+    }
+    setManager(user);
+  }, []);
+
+  /* ================= FETCH INTERNS ================= */
   const fetchInterns = async () => {
     try {
       const res = await api.get("/users/manager/interns");
-      setInterns(res.data);
-      initializeStipends(res.data);
+      setInterns(res.data || []);
+      initStipends(res.data || []);
     } catch (err) {
       console.error(err);
       alert("Failed to load interns");
     }
   };
 
-
-
- const downloadExcel = async () => {
-  try {
-    const res = await api.get("/salary/manager/export", {
-      responseType: "blob", // 🔥 IMPORTANT
-    });
-
-    // Create file download
-    const blob = new Blob([res.data], {
-      type:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "manager-stipend-report.xlsx";
-    link.click();
-
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Excel download failed:", error);
-    alert("Failed to download Excel");
-  }
-};
-
-
-  /* ------------------------------------
-     INIT STIPEND STATE
-  ------------------------------------ */
-  const initializeStipends = (list) => {
+  const initStipends = (list) => {
     const data = {};
     list.forEach((i) => {
       data[i._id] = {
@@ -67,28 +46,37 @@ const ManagerStipend = () => {
   };
 
   useEffect(() => {
-    fetchInterns();
-  }, []);
+    if (manager) fetchInterns();
+  }, [manager]);
 
-  /* ------------------------------------
-     UPDATE STIPEND
-  ------------------------------------ */
+  /* ================= INPUT HANDLER ================= */
+  const updateField = (id, field, value) => {
+    setStipends((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  /* ================= UPDATE STIPEND ================= */
   const handleUpdate = async (internId) => {
-    const { baseSalary, bonus, deductions } = stipends[internId];
+    const s = stipends[internId];
 
-    if (!baseSalary || Number(baseSalary) <= 0) {
-      alert("Enter valid gross stipend");
+    if (!s?.baseSalary || Number(s.baseSalary) <= 0) {
+      alert("Enter a valid gross stipend");
       return;
     }
 
     try {
-      setLoading(true);
+      setLoadingId(internId);
 
       await api.post("/salary/set", {
         userId: internId,
-        baseSalary: Number(baseSalary),
-        bonus: Number(bonus || 0),
-        deductions: Number(deductions || 0),
+        baseSalary: Number(s.baseSalary),
+        bonus: Number(s.bonus || 0),
+        deductions: Number(s.deductions || 0),
         month,
       });
 
@@ -97,136 +85,172 @@ const ManagerStipend = () => {
       console.error(err);
       alert("Failed to update stipend");
     } finally {
-      setLoading(false);
+      setLoadingId(null);
     }
   };
 
-  return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Intern Stipend Management</h1>
+  /* ================= EXCEL DOWNLOAD ================= */
+  const downloadExcel = async () => {
+    try {
+      const res = await api.get("/salary/manager/export", {
+        responseType: "blob",
+      });
 
-      {/* MONTH SELECTOR */}
-      <div className="mb-6">
-        <label className="font-medium mr-3">Select Month:</label>
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="border p-2 rounded"
-        />
+      const blob = new Blob([res.data], {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `stipend-report-${month}.xlsx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download Excel");
+    }
+  };
+
+  if (!manager) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Loading…
       </div>
+    );
+  }
 
-      {interns.length === 0 ? (
-        <p className="text-gray-500">No interns assigned to you.</p>
-      ) : (
-        <div className="bg-white rounded-xl shadow p-6 overflow-x-auto">
-          <table className="w-full border text-sm">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 border text-left">Intern</th>
-                <th className="p-3 border">Gross Stipend</th>
-                <th className="p-3 border">Incentives</th>
-                <th className="p-3 border">Deductions</th>
-                <th className="p-3 border">Net Payable</th>
-                <th className="p-3 border">Action</th>
-              </tr>
-            </thead>
+  /* ================= UI ================= */
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+      <Sidebar
+        onLogout={() => {
+          localStorage.clear();
+          window.location.href = "/";
+        }}
+        isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen}
+      />
 
-            <tbody>
-              {interns.map((intern) => {
-                const s = stipends[intern._id] || {};
-                const net =
-                  Number(s.baseSalary || 0) +
-                  Number(s.bonus || 0) -
-                  Number(s.deductions || 0);
+      <div className="flex-1 md:ml-64 px-4 sm:px-6 py-6">
+        <Navbar
+          user={manager}
+          onMenuClick={() => setSidebarOpen(true)}
+        />
 
-                return (
-                  <tr key={intern._id} className="border-t">
-                    <td className="p-3 font-medium">{intern.name}</td>
+        <h1 className="text-2xl font-bold mb-6">
+          Intern Stipend Management
+        </h1>
 
-                    <td className="p-3">
-                      <input
-                        type="number"
-                        className="border p-2 rounded w-32"
-                        placeholder="Gross"
-                        value={s.baseSalary}
-                        onChange={(e) =>
-                          setStipends({
-                            ...stipends,
-                            [intern._id]: {
-                              ...s,
-                              baseSalary: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </td>
-
-                    <td className="p-3">
-                      <input
-                        type="number"
-                        className="border p-2 rounded w-32"
-                        placeholder="Incentives"
-                        value={s.bonus}
-                        onChange={(e) =>
-                          setStipends({
-                            ...stipends,
-                            [intern._id]: {
-                              ...s,
-                              bonus: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </td>
-
-                    <td className="p-3">
-                      <input
-                        type="number"
-                        className="border p-2 rounded w-32"
-                        placeholder="Deductions"
-                        value={s.deductions}
-                        onChange={(e) =>
-                          setStipends({
-                            ...stipends,
-                            [intern._id]: {
-                              ...s,
-                              deductions: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </td>
-
-                    <td className="p-3 font-semibold">₹{net}</td>
-
-                    <td className="p-3">
-                      <button
-                        onClick={() => handleUpdate(intern._id)}
-                        disabled={loading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                      >
-                        {loading ? "Saving..." : "Update"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <br></br>
-          <button
-            onClick={downloadExcel}
-            className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl mb-4"
-          >
-            Download Salary Excel
-          </button>
+        {/* MONTH */}
+        <div className="mb-6 flex items-center gap-3">
+          <label className="font-medium">Month:</label>
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="border p-2 rounded-lg"
+          />
         </div>
 
-      )}
+        {interns.length === 0 ? (
+          <p className="text-gray-500">No interns assigned to you.</p>
+        ) : (
+          <div className="bg-white rounded-xl shadow p-6 overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="p-3 text-left">Intern</th>
+                  <th className="p-3">Gross</th>
+                  <th className="p-3">Incentives</th>
+                  <th className="p-3">Deductions</th>
+                  <th className="p-3">Net Pay</th>
+                  <th className="p-3">Action</th>
+                </tr>
+              </thead>
 
+              <tbody>
+                {interns.map((i) => {
+                  const s = stipends[i._id] || {};
+                  const net = Math.max(
+                    0,
+                    Number(s.baseSalary || 0) +
+                      Number(s.bonus || 0) -
+                      Number(s.deductions || 0)
+                  );
+
+                  return (
+                    <tr key={i._id} className="border-t">
+                      <td className="p-3 font-medium">{i.name}</td>
+
+                      <td className="p-3">
+                        <input
+                          type="number"
+                          min="0"
+                          className="border p-2 rounded w-28"
+                          value={s.baseSalary}
+                          onChange={(e) =>
+                            updateField(i._id, "baseSalary", e.target.value)
+                          }
+                        />
+                      </td>
+
+                      <td className="p-3">
+                        <input
+                          type="number"
+                          min="0"
+                          className="border p-2 rounded w-28"
+                          value={s.bonus}
+                          onChange={(e) =>
+                            updateField(i._id, "bonus", e.target.value)
+                          }
+                        />
+                      </td>
+
+                      <td className="p-3">
+                        <input
+                          type="number"
+                          min="0"
+                          className="border p-2 rounded w-28"
+                          value={s.deductions}
+                          onChange={(e) =>
+                            updateField(i._id, "deductions", e.target.value)
+                          }
+                        />
+                      </td>
+
+                      <td className="p-3 font-semibold">₹ {net}</td>
+
+                      <td className="p-3">
+                        <button
+                          onClick={() => handleUpdate(i._id)}
+                          disabled={loadingId === i._id}
+                          className="bg-blue-600 hover:bg-blue-700
+                          disabled:opacity-60 text-white px-4 py-2 rounded-lg"
+                        >
+                          {loadingId === i._id ? "Saving…" : "Update"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="mt-6">
+              <button
+                onClick={downloadExcel}
+                className="bg-green-600 hover:bg-green-700
+                text-white px-6 py-2.5 rounded-xl"
+              >
+                Download Salary Excel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-
   );
 };
 

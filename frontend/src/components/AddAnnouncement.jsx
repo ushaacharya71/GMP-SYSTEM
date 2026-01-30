@@ -9,21 +9,38 @@ const AddAnnouncement = () => {
     message: "",
     type: "general",
   });
+  const [loading, setLoading] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user"));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!user?._id) {
+      toast.error("Unauthorized action");
+      return;
+    }
+
     try {
+      setLoading(true);
+
       const res = await api.post("/announcements/create", {
         ...form,
         adminId: user._id,
       });
-      toast.success(res.data.message);
+
+      toast.success(
+        res.data?.message || "Announcement published successfully"
+      );
+
       setForm({ title: "", message: "", type: "general" });
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Error creating announcement");
+      console.error("Create announcement error", err);
+      toast.error(
+        err.response?.data?.message || "Error creating announcement"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -113,13 +130,15 @@ const AddAnnouncement = () => {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
+            disabled={loading}
             className="inline-flex items-center gap-2
               bg-blue-600 hover:bg-blue-700
+              disabled:opacity-50 disabled:cursor-not-allowed
               text-white text-sm font-medium
               px-6 py-2.5 rounded-lg
               transition shadow-sm"
           >
-            Publish Announcement
+            {loading ? "Publishing..." : "Publish Announcement"}
           </button>
         </div>
       </form>

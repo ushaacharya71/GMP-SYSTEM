@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { Save, ArrowLeft } from "lucide-react";
@@ -6,7 +6,8 @@ import { Save, ArrowLeft } from "lucide-react";
 const AddUserPage = () => {
   const navigate = useNavigate();
 
-  const [managers, setManagers] = useState([]);
+  const [rawManagers, setRawManagers] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -23,19 +24,36 @@ const AddUserPage = () => {
   });
 
   /* -------------------------------
-        FETCH MANAGERS
+        FETCH MANAGERS (SAFE)
   -------------------------------- */
   useEffect(() => {
     const fetchManagers = async () => {
       try {
         const res = await api.get("/users");
-        setManagers(res.data.filter((u) => u.role === "manager"));
+
+        const normalized = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+        setRawManagers(
+          normalized.filter((u) => u.role === "manager")
+        );
       } catch (error) {
         console.error("Error fetching managers:", error);
+        setRawManagers([]);
       }
     };
+
     fetchManagers();
   }, []);
+
+  // ✅ Always array-safe
+  const managers = useMemo(
+    () => (Array.isArray(rawManagers) ? rawManagers : []),
+    [rawManagers]
+  );
 
   /* -------------------------------
         INPUT HANDLER
@@ -43,7 +61,7 @@ const AddUserPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // 🔥 CLEANUP ON ROLE CHANGE
+    // 🔥 RESET FIELDS ON ROLE CHANGE
     if (name === "role") {
       setForm((prev) => ({
         ...prev,
@@ -63,6 +81,7 @@ const AddUserPage = () => {
   -------------------------------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
 
     if (!form.name || !form.email || !form.password) {
       alert("Please fill all required fields.");
@@ -75,25 +94,33 @@ const AddUserPage = () => {
     }
 
     try {
+      setSubmitting(true);
+
       const res = await api.post("/users", form);
-      alert(`✅ User ${res.data.user.name} created successfully!`);
+
+      alert(
+        `✅ User ${res.data?.user?.name || ""} created successfully!`
+      );
       navigate("/admin/manage-users");
     } catch (error) {
       console.error("Error adding user:", error);
       alert(
         error.response?.data?.message ||
-          "❌ Failed to create user. Check console."
+          "❌ Failed to create user."
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen flex justify-center items-center">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-
         {/* HEADER */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Add New User</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Add New User
+          </h2>
           <button
             onClick={() => navigate(-1)}
             className="text-gray-600 hover:text-gray-800 flex items-center"
@@ -104,13 +131,13 @@ const AddUserPage = () => {
 
         {/* FORM */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
           <input
             type="text"
             name="name"
             placeholder="Full Name"
             value={form.name}
             onChange={handleChange}
+            required
             className="border rounded-lg p-2"
           />
 
@@ -120,6 +147,7 @@ const AddUserPage = () => {
             placeholder="Email"
             value={form.email}
             onChange={handleChange}
+            required
             className="border rounded-lg p-2"
           />
 
@@ -138,6 +166,7 @@ const AddUserPage = () => {
             placeholder="Temporary Password"
             value={form.password}
             onChange={handleChange}
+            required
             className="border rounded-lg p-2"
           />
 
@@ -161,6 +190,7 @@ const AddUserPage = () => {
                 name="manager"
                 value={form.manager}
                 onChange={handleChange}
+                required
                 className="border rounded-lg p-2"
               >
                 <option value="">Select Manager</option>
@@ -253,9 +283,12 @@ const AddUserPage = () => {
 
           <button
             type="submit"
-            className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg gap-2 transition"
+            disabled={submitting}
+            className="flex items-center justify-center bg-blue-600 hover:bg-blue-700
+              disabled:opacity-60 disabled:cursor-not-allowed
+              text-white py-2 rounded-lg gap-2 transition"
           >
-            <Save size={18} /> Save User
+            <Save size={18} /> {submitting ? "Saving..." : "Save User"}
           </button>
         </form>
       </div>

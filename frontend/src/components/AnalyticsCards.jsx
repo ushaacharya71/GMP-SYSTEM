@@ -1,31 +1,34 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-const AnalyticsCards = ({ data }) => {
+const AnalyticsCards = ({ data = {} }) => {
+  const safeNumber = (v) =>
+    typeof v === "number" && !isNaN(v) ? v : 0;
+
   const cards = [
     {
       title: "Total Users",
-      value: data.totalUsers || 0,
+      value: safeNumber(data.totalUsers),
       accent: "from-blue-500 to-blue-600",
     },
     {
       title: "Employees",
-      value: data.employees || 0,
+      value: safeNumber(data.employees),
       accent: "from-green-500 to-green-600",
     },
     {
       title: "Interns",
-      value: data.interns || 0,
+      value: safeNumber(data.interns),
       accent: "from-purple-500 to-purple-600",
     },
     {
       title: "Active Today",
-      value: data.activeToday || 0,
+      value: safeNumber(data.activeToday),
       accent: "from-emerald-500 to-emerald-600",
     },
     {
       title: "Total Revenue",
-      value: `₹${data.revenue || 0}`,
+      value: `₹ ${safeNumber(data.revenue).toLocaleString()}`,
       accent: "from-orange-500 to-orange-600",
     },
   ];
@@ -34,7 +37,7 @@ const AnalyticsCards = ({ data }) => {
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mt-6">
       {cards.map((card, i) => (
         <motion.div
-          key={i}
+          key={card.title}
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: i * 0.08 }}

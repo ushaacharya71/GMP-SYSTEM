@@ -10,7 +10,7 @@ const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const loggedInUser = JSON.parse(localStorage.getItem("user"));
+  const loggedInUser = JSON.parse(localStorage.getItem("user") || "null");
 
   const [user, setUser] = useState(null);
   const [performance, setPerformance] = useState([]);
@@ -22,60 +22,51 @@ const UserProfile = () => {
   const [deductions, setDeductions] = useState("");
   const [month, setMonth] = useState("");
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  /* ================= FETCH ALL DATA ================= */
   useEffect(() => {
-    fetchUserData();
-    fetchPerformance();
-    fetchAttendance();
-    fetchSalary();
+    let mounted = true;
+
+    const fetchAll = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const [u, p, a, s] = await Promise.all([
+          api.get(`/users/${id}`),
+          api.get(`/users/${id}/performance`),
+          api.get(`/attendance/summary/${id}`),
+          api.get(`/salary/${id}`),
+        ]);
+
+        if (!mounted) return;
+
+        setUser(u.data);
+        setPerformance(Array.isArray(p.data) ? p.data : []);
+        setAttendance(a.data?.summary || []);
+        setSalary(Array.isArray(s.data) ? s.data : []);
+      } catch (err) {
+        console.error(err);
+        if (mounted) setError("Failed to load user profile");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchAll();
+    return () => (mounted = false);
   }, [id]);
 
-  /* ---------------- FETCH USER ---------------- */
-  const fetchUserData = async () => {
-    try {
-      const res = await api.get(`/users/${id}`);
-      setUser(res.data);
-    } catch (err) {
-      console.error("Error fetching user:", err);
-    }
-  };
-
-  /* ---------------- FETCH PERFORMANCE ---------------- */
-  const fetchPerformance = async () => {
-    try {
-      const res = await api.get(`/users/${id}/performance`);
-      setPerformance(res.data);
-    } catch (err) {
-      console.error("Error fetching performance:", err);
-    }
-  };
-
-  /* ---------------- FETCH ATTENDANCE ---------------- */
-  const fetchAttendance = async () => {
-    try {
-      const res = await api.get(`/attendance/summary/${id}`);
-      setAttendance(res.data.summary || []);
-    } catch (err) {
-      console.warn("Attendance not found");
-      setAttendance([]);
-    }
-  };
-
-  /* ---------------- FETCH SALARY ---------------- */
-  const fetchSalary = async () => {
-    try {
-      const res = await api.get(`/salary/${id}`);
-      setSalary(res.data);
-    } catch (err) {
-      setSalary([]);
-    }
-  };
-
-  /* ---------------- UPDATE SALARY (ADMIN / MANAGER) ---------------- */
+  /* ================= UPDATE SALARY ================= */
   const handleSalarySubmit = async (e) => {
     e.preventDefault();
 
-    if (!month) {
-      alert("Please select month");
+    if (!month) return alert("Please select month");
+
+    if (Number(baseSalary) <= 0) {
+      alert("Enter valid base amount");
       return;
     }
 
@@ -83,182 +74,172 @@ const UserProfile = () => {
       await api.post("/salary/set", {
         userId: id,
         baseSalary: Number(baseSalary),
-        bonus: Number(bonus),
-        deductions: Number(deductions),
+        bonus: Number(bonus || 0),
+        deductions: Number(deductions || 0),
         month,
       });
 
-      alert("✅ Salary / Stipend updated");
-      fetchSalary();
+      alert("✅ Salary updated");
       setBaseSalary("");
       setBonus("");
       setDeductions("");
-    } catch (err) {
+      setMonth("");
+
+      const res = await api.get(`/salary/${id}`);
+      setSalary(Array.isArray(res.data) ? res.data : []);
+    } catch {
       alert("Failed to update salary");
     }
   };
 
-  if (!user) return <p className="p-6">Loading...</p>;
+  /* ================= GUARDS ================= */
+  if (loading) {
+    return <div className="p-6 text-gray-500">Loading profile…</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
+
+  if (!user) return null;
 
   const canManageSalary =
     loggedInUser?.role === "admin" || loggedInUser?.role === "manager";
 
-  const hideSalaryForUser = user.role === "intern" || user.role === "employee";
+  const hideSalaryForUser =
+    user.role === "intern" || user.role === "employee";
+
+  const joinedDate = user.joiningDate
+    ? new Date(user.joiningDate).toLocaleDateString()
+    : "—";
 
   return (
-  <div className="min-h-screen bg-gray-50 p-6">
-    {/* BACK */}
-    <button
-      onClick={() => navigate(-1)}
-      className="flex items-center text-sm text-gray-600 hover:text-gray-900 mb-6"
-    >
-      <ArrowLeft size={16} className="mr-2" /> Back to users
-    </button>
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* BACK */}
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center text-sm text-gray-600 hover:text-gray-900 mb-6"
+      >
+        <ArrowLeft size={16} className="mr-2" /> Back to users
+      </button>
 
-    {/* ================= PROFILE HEADER ================= */}
-    <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-        <img
-          src={user.avatar || defaultAvatar}
-          alt={user.name}
-          className="w-24 h-24 rounded-full border object-cover"
-        />
+      {/* PROFILE */}
+      <section className="bg-white border rounded-2xl p-6 shadow-sm mb-6">
+        <div className="flex flex-col sm:flex-row gap-6">
+          <img
+            src={user.avatar || defaultAvatar}
+            alt={user.name}
+            className="w-24 h-24 rounded-full border object-cover"
+          />
 
-        <div className="flex-1">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {user.name}
-          </h2>
-          <p className="text-sm text-gray-600">{user.email}</p>
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold">{user.name}</h2>
+            <p className="text-sm text-gray-600">{user.email}</p>
 
-          <div className="flex flex-wrap gap-3 mt-2">
-            <span className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700 capitalize">
-              {user.role}
-            </span>
-            <span className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
-              {user.teamName || user.position || "—"}
-            </span>
-            <span className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
-              Joined {new Date(user.joiningDate).toLocaleDateString()}
-            </span>
+            <div className="flex flex-wrap gap-3 mt-2">
+              <span className="badge">{user.role}</span>
+              <span className="badge">
+                {user.teamName || user.position || "—"}
+              </span>
+              <span className="badge">Joined {joinedDate}</span>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    {/* ================= ANALYTICS ================= */}
-    <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">
-          Revenue Performance
-        </h3>
-        <RevenueChart data={performance} />
-      </div>
+      {/* ANALYTICS */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white border rounded-2xl p-5 shadow-sm">
+          <h3 className="text-sm font-semibold mb-3">Revenue Performance</h3>
+          <RevenueChart data={performance} />
+        </div>
 
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">
-          Attendance Overview
-        </h3>
-        <AttendanceChart data={attendance} />
-      </div>
-    </section>
-
-    {/* ================= SALARY (ADMIN / MANAGER) ================= */}
-    {canManageSalary && !hideSalaryForUser && (
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Salary / Stipend Management
-        </h3>
-
-        {/* FORM */}
-        <form
-          onSubmit={handleSalarySubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          <input
-            type="number"
-            placeholder="Base Amount"
-            value={baseSalary}
-            onChange={(e) => setBaseSalary(e.target.value)}
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <input
-            type="number"
-            placeholder="Incentives"
-            value={bonus}
-            onChange={(e) => setBonus(e.target.value)}
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <input
-            type="number"
-            placeholder="Deductions"
-            value={deductions}
-            onChange={(e) => setDeductions(e.target.value)}
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <button
-            type="submit"
-            className="col-span-1 md:col-span-2
-              bg-blue-600 hover:bg-blue-700
-              text-white text-sm font-medium
-              py-2.5 rounded-xl transition"
-          >
-            Update Salary
-          </button>
-        </form>
-
-        {/* HISTORY */}
-        <div className="mt-6">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">
-            Salary History
-          </h4>
-
-          {salary.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              No salary records found.
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {salary.map((s) => (
-                <li
-                  key={s._id}
-                  className="border border-gray-200 rounded-xl p-4 bg-gray-50"
-                >
-                  <div className="flex justify-between text-sm font-medium">
-                    <span>{s.month}</span>
-                    <span className="text-gray-900">
-                      ₹{s.totalSalary}
-                    </span>
-                  </div>
-
-                  <div className="text-xs text-gray-600 mt-2 grid grid-cols-2 gap-y-1">
-                    <span>Base: ₹{s.baseSalary}</span>
-                    <span>Bonus: ₹{s.bonus}</span>
-                    <span>Deductions: ₹{s.deductions}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="bg-white border rounded-2xl p-5 shadow-sm">
+          <h3 className="text-sm font-semibold mb-3">
+            Attendance Overview
+          </h3>
+          <AttendanceChart data={attendance} />
         </div>
       </section>
-    )}
-  </div>
-);
 
+      {/* SALARY */}
+      {canManageSalary && !hideSalaryForUser && (
+        <section className="bg-white border rounded-2xl p-6 shadow-sm mt-6">
+          <h3 className="text-lg font-semibold mb-4">
+            Salary / Stipend Management
+          </h3>
+
+          <form
+            onSubmit={handleSalarySubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            <input
+              type="number"
+              placeholder="Base Amount"
+              value={baseSalary}
+              onChange={(e) => setBaseSalary(e.target.value)}
+              className="input"
+            />
+            <input
+              type="number"
+              placeholder="Incentives"
+              value={bonus}
+              onChange={(e) => setBonus(e.target.value)}
+              className="input"
+            />
+            <input
+              type="number"
+              placeholder="Deductions"
+              value={deductions}
+              onChange={(e) => setDeductions(e.target.value)}
+              className="input"
+            />
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="input"
+            />
+
+            <button className="btn-primary col-span-1 md:col-span-2">
+              Update Salary
+            </button>
+          </form>
+
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold mb-3">
+              Salary History
+            </h4>
+
+            {salary.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No salary records found.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {salary.map((s) => (
+                  <li
+                    key={s._id}
+                    className="border rounded-xl p-4 bg-gray-50"
+                  >
+                    <div className="flex justify-between text-sm font-medium">
+                      <span>{s.month}</span>
+                      <span>₹{s.totalSalary}</span>
+                    </div>
+                    <div className="text-xs text-gray-600 mt-2 grid grid-cols-2 gap-y-1">
+                      <span>Base: ₹{s.baseSalary}</span>
+                      <span>Bonus: ₹{s.bonus}</span>
+                      <span>Deductions: ₹{s.deductions}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  );
 };
 
 export default UserProfile;

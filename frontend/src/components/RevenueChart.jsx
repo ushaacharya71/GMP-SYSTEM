@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -11,19 +11,27 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const RevenueChart = ({ data = [] }) => {
+const RevenueChart = ({ data }) => {
   const [chartType, setChartType] = useState("line");
 
-  const totalRevenue = data.reduce(
-    (sum, d) => sum + Number(d.amount || 0),
-    0
-  );
+  // ✅ Normalize data ALWAYS
+  const safeData = useMemo(() => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.revenue)) return data.revenue;
+    return [];
+  }, [data]);
+
+  // ✅ Safe reduce
+  const totalRevenue = useMemo(() => {
+    return safeData.reduce(
+      (sum, d) => sum + Number(d?.amount || 0),
+      0
+    );
+  }, [safeData]);
 
   return (
-    <div
-      className="bg-white rounded-2xl border border-gray-100
-      shadow-sm hover:shadow-lg transition-all duration-300 p-5 md:p-6"
-    >
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 p-5 md:p-6">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
@@ -35,12 +43,7 @@ const RevenueChart = ({ data = [] }) => {
           </p>
         </div>
 
-        {/* TOTAL REVENUE */}
-        <div
-          className="px-5 py-2.5 rounded-xl
-          bg-gradient-to-r from-blue-500 to-blue-600
-          text-white font-semibold text-sm shadow-md w-fit"
-        >
+        <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold text-sm shadow-md w-fit">
           ₹ {totalRevenue.toLocaleString()}
         </div>
       </div>
@@ -64,24 +67,18 @@ const RevenueChart = ({ data = [] }) => {
       </div>
 
       {/* CHART */}
-      {data.length === 0 ? (
+      {safeData.length === 0 ? (
         <div className="flex items-center justify-center h-[280px] text-gray-400 text-sm">
           No revenue data available
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={320}>
           {chartType === "line" ? (
-            <LineChart data={data}>
+            <LineChart data={safeData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" />
               <YAxis stroke="#9ca3af" />
               <Tooltip
-                contentStyle={{
-                  borderRadius: "14px",
-                  border: "none",
-                  background: "#ffffff",
-                  boxShadow: "0 12px 25px rgba(0,0,0,0.12)",
-                }}
                 formatter={(value) => [`₹ ${value}`, "Revenue"]}
               />
               <Line
@@ -94,17 +91,11 @@ const RevenueChart = ({ data = [] }) => {
               />
             </LineChart>
           ) : (
-            <BarChart data={data}>
+            <BarChart data={safeData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" />
               <YAxis stroke="#9ca3af" />
               <Tooltip
-                contentStyle={{
-                  borderRadius: "14px",
-                  border: "none",
-                  background: "#ffffff",
-                  boxShadow: "0 12px 25px rgba(0,0,0,0.12)",
-                }}
                 formatter={(value) => [`₹ ${value}`, "Revenue"]}
               />
               <Bar

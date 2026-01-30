@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import AnalyticsCards from "../components/AnalyticsCards";
@@ -16,15 +16,18 @@ const AdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [stats, setStats] = useState({});
-  const [revenueData, setRevenueData] = useState([]);
-  const [performanceData, setPerformanceData] = useState([]);
+  const [rawStats, setRawStats] = useState({});
+  const [rawRevenue, setRawRevenue] = useState([]);
+  const [rawPerformance, setRawPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // 📅 Excel filters
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
 
+  /* -------------------------------
+      INIT
+  -------------------------------- */
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem("user"));
     if (!u) return;
@@ -32,6 +35,9 @@ const AdminDashboard = () => {
     fetchAdminAnalytics();
   }, []);
 
+  /* -------------------------------
+      FETCH ANALYTICS (SAFE)
+  -------------------------------- */
   const fetchAdminAnalytics = async () => {
     try {
       const [o, r, p] = await Promise.all([
@@ -39,23 +45,60 @@ const AdminDashboard = () => {
         api.get("/analytics/revenue"),
         api.get("/analytics/performance"),
       ]);
-      setStats(o.data);
-      setRevenueData(r.data);
-      setPerformanceData(p.data);
+
+      setRawStats(
+        typeof o.data === "object" && o.data !== null ? o.data : {}
+      );
+
+      setRawRevenue(
+        Array.isArray(r.data)
+          ? r.data
+          : Array.isArray(r.data?.data)
+          ? r.data.data
+          : []
+      );
+
+      setRawPerformance(
+        Array.isArray(p.data)
+          ? p.data
+          : Array.isArray(p.data?.data)
+          ? p.data.data
+          : []
+      );
     } catch (err) {
       console.error("Admin analytics failed", err);
+      setRawStats({});
+      setRawRevenue([]);
+      setRawPerformance([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Memoized safe data
+  const stats = useMemo(() => rawStats, [rawStats]);
+  const revenueData = useMemo(
+    () => (Array.isArray(rawRevenue) ? rawRevenue : []),
+    [rawRevenue]
+  );
+  const performanceData = useMemo(
+    () => (Array.isArray(rawPerformance) ? rawPerformance : []),
+    [rawPerformance]
+  );
+
+  /* -------------------------------
+      EXCEL EXPORT
+  -------------------------------- */
   const downloadLeaveExcel = async () => {
     try {
-      const res = await api.get(`/leaves/export?month=${month}&year=${year}`, {
-        responseType: "blob",
-      });
+      const res = await api.get(
+        `/leaves/export?month=${Number(month)}&year=${Number(year)}`,
+        { responseType: "blob" }
+      );
 
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const url = window.URL.createObjectURL(
+        new Blob([res.data])
+      );
       const link = document.createElement("a");
       link.href = url;
       link.download = `Leave_Report_${month}_${year}.xlsx`;
@@ -67,6 +110,9 @@ const AdminDashboard = () => {
     }
   };
 
+  /* -------------------------------
+      LOGOUT
+  -------------------------------- */
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/";
@@ -83,9 +129,8 @@ const AdminDashboard = () => {
         setIsOpen={setSidebarOpen}
       />
 
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <div className="flex-1 md:ml-64 px-4 sm:px-6 py-6 space-y-8">
-        {/* NAVBAR */}
         <Navbar user={user} onMenuClick={() => setSidebarOpen(true)} />
 
         {/* 🎂 BIRTHDAY */}
@@ -93,7 +138,7 @@ const AdminDashboard = () => {
 
         {/* 📊 ANALYTICS */}
         <section>
-          <AnalyticsCards data={stats} loading={loading} />
+          <AnalyticsCards data={stats} />
         </section>
 
         {/* 📈 CHARTS */}
@@ -114,9 +159,7 @@ const AdminDashboard = () => {
         </section>
 
         {/* 👨‍💼 MANAGER REVENUE */}
-        <section>
-          <ManagerRevenue />
-        </section>
+        <ManagerRevenue />
 
         {/* 🏆 TOP PERFORMERS */}
         <section>
@@ -140,7 +183,7 @@ const AdminDashboard = () => {
             <div className="flex flex-wrap gap-2">
               <select
                 value={month}
-                onChange={(e) => setMonth(e.target.value)}
+                onChange={(e) => setMonth(Number(e.target.value))}
                 className="border rounded-lg px-3 py-2 text-sm"
               >
                 {[...Array(12)].map((_, i) => (
@@ -152,7 +195,7 @@ const AdminDashboard = () => {
 
               <select
                 value={year}
-                onChange={(e) => setYear(e.target.value)}
+                onChange={(e) => setYear(Number(e.target.value))}
                 className="border rounded-lg px-3 py-2 text-sm"
               >
                 {[2024, 2025, 2026].map((y) => (

@@ -11,6 +11,7 @@ const AdminAttendanceTable = () => {
   const fetchAttendance = async () => {
     try {
       setLoading(true);
+
       const params = new URLSearchParams();
       if (role) params.append("role", role);
       if (start && end) {
@@ -18,10 +19,21 @@ const AdminAttendanceTable = () => {
         params.append("end", end);
       }
 
-      const res = await api.get(`/attendance/filter?${params.toString()}`);
-      setRecords(res.data);
+      const res = await api.get(
+        `/attendance/filter?${params.toString()}`
+      );
+
+      // ✅ normalize response
+      const normalized = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.records)
+        ? res.data.records
+        : [];
+
+      setRecords(normalized);
     } catch (err) {
       console.error("Error fetching filtered attendance:", err);
+      setRecords([]);
     } finally {
       setLoading(false);
     }
@@ -61,6 +73,7 @@ const AdminAttendanceTable = () => {
           value={end}
           onChange={(e) => setEnd(e.target.value)}
         />
+
         <button
           onClick={fetchAttendance}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
@@ -72,7 +85,7 @@ const AdminAttendanceTable = () => {
       {/* Table */}
       {loading ? (
         <p className="text-gray-500 text-center py-4">Loading...</p>
-      ) : records.length ? (
+      ) : records.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-left border">
             <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
@@ -86,18 +99,37 @@ const AdminAttendanceTable = () => {
             </thead>
             <tbody>
               {records.map((rec) => (
-                <tr key={rec._id} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-2">{rec.user?.name || "—"}</td>
-                  <td className="px-4 py-2">{rec.user?.email}</td>
-                  <td className="px-4 py-2 capitalize">{rec.role}</td>
-                  <td className="px-4 py-2">{rec.date}</td>
+                <tr
+                  key={rec._id}
+                  className="border-t hover:bg-gray-50"
+                >
                   <td className="px-4 py-2">
-                    {rec.events.map((e, idx) => (
+                    {rec.user?.name || "—"}
+                  </td>
+                  <td className="px-4 py-2">
+                    {rec.user?.email || "—"}
+                  </td>
+                  <td className="px-4 py-2 capitalize">
+                    {rec.role || "—"}
+                  </td>
+                  <td className="px-4 py-2">
+                    {rec.date
+                      ? new Date(rec.date).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-2">
+                    {(Array.isArray(rec.events)
+                      ? rec.events
+                      : []
+                    ).map((e, idx) => (
                       <span
                         key={idx}
-                        className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs mr-2"
+                        className="inline-block bg-blue-100 text-blue-700
+                          px-2 py-1 rounded-lg text-xs mr-2 mb-1"
                       >
-                        {e.type.replace(/([A-Z])/g, " $1")}
+                        {e?.type
+                          ? e.type.replace(/([A-Z])/g, " $1")
+                          : "Event"}
                       </span>
                     ))}
                   </td>

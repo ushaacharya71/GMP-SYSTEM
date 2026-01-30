@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { ArrowLeft } from "lucide-react";
@@ -8,36 +8,62 @@ import AttendanceSummary from "./AttendanceSummary";
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
   const [performance, setPerformance] = useState([]);
-  const [attendance, setAttendance] = useState([]);
   const [salary, setSalary] = useState([]);
+
   const [baseSalary, setBaseSalary] = useState("");
   const [bonus, setBonus] = useState("");
   const [deductions, setDeductions] = useState("");
   const [month, setMonth] = useState("");
 
   useEffect(() => {
+    if (!id) return;
     fetchUserData();
     fetchPerformance();
-    fetchAttendance();
     fetchSalary();
   }, [id]);
+
+  /* ================= FETCHERS ================= */
+
+  const fetchUserData = async () => {
+    try {
+      const res = await api.get(`/users/${id}`);
+      setUser(res.data || null);
+    } catch (err) {
+      console.error("Error fetching user:", err);
+      setUser(null);
+    }
+  };
+
+  const fetchPerformance = async () => {
+    try {
+      const res = await api.get(`/users/${id}/performance`);
+      setPerformance(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Error fetching performance:", err);
+      setPerformance([]);
+    }
+  };
 
   const fetchSalary = async () => {
     try {
       const res = await api.get(`/salary/${id}`);
-      setSalary(res.data);
+      setSalary(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching salary:", err);
+      setSalary([]);
     }
   };
+
+  /* ================= SALARY ================= */
 
   const handleSalarySubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const res = await api.post("/salary/set", {
+      await api.post("/salary/set", {
         userId: id,
         baseSalary: Number(baseSalary),
         bonus: Number(bonus),
@@ -46,6 +72,10 @@ const UserProfile = () => {
       });
 
       alert("Salary updated successfully!");
+      setBaseSalary("");
+      setBonus("");
+      setDeductions("");
+      setMonth("");
       fetchSalary();
     } catch (err) {
       console.error("Error updating salary:", err);
@@ -53,37 +83,18 @@ const UserProfile = () => {
     }
   };
 
-  const fetchUserData = async () => {
-    try {
-      const res = await api.get(`/users/${id}`);
-      setUser(res.data);
-    } catch (err) {
-      console.error("Error fetching user:", err);
-    }
-  };
+  /* ================= SAFE DERIVED ================= */
 
-  const fetchPerformance = async () => {
-    try {
-      const res = await api.get(`/users/${id}/performance`);
-      setPerformance(res.data);
-    } catch (err) {
-      console.error("Error fetching performance:", err);
-    }
-  };
-
-  const fetchAttendance = async () => {
-    try {
-      const res = await api.get(`/users/${id}/attendance`);
-      setAttendance(res.data);
-    } catch (err) {
-      console.error("Error fetching attendance:", err);
-    }
-  };
+  const salaryList = useMemo(
+    () => (Array.isArray(salary) ? salary : []),
+    [salary]
+  );
 
   if (!user) return <p className="p-6">Loading...</p>;
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
+      {/* BACK */}
       <button
         onClick={() => navigate(-1)}
         className="flex items-center text-gray-700 hover:text-gray-900 mb-4"
@@ -91,6 +102,7 @@ const UserProfile = () => {
         <ArrowLeft size={18} className="mr-2" /> Back
       </button>
 
+      {/* USER CARD */}
       <div className="bg-white rounded-2xl shadow-md p-6 mb-6">
         <div className="flex items-center gap-6">
           <img
@@ -106,12 +118,16 @@ const UserProfile = () => {
               {user.teamName || user.position || "—"}
             </p>
             <p className="text-sm text-gray-500">
-              Joined: {new Date(user.joiningDate).toLocaleDateString()}
+              Joined:{" "}
+              {user.joiningDate
+                ? new Date(user.joiningDate).toLocaleDateString()
+                : "—"}
             </p>
           </div>
         </div>
       </div>
 
+      {/* CHARTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-md">
           <h3 className="font-semibold mb-4 text-gray-800">
@@ -119,20 +135,22 @@ const UserProfile = () => {
           </h3>
           <RevenueChart data={performance} />
         </div>
+
         <div className="bg-white p-6 rounded-2xl shadow-md">
           <h3 className="font-semibold mb-4 text-gray-800">
             Attendance Summary
           </h3>
-          <AttendanceSummary data={attendance} />
+          {/* ✅ FIXED */}
+          <AttendanceSummary userId={id} />
         </div>
       </div>
-      {/* ================= SALARY SECTION ================= */}
+
+      {/* SALARY SECTION */}
       <div className="bg-white p-6 rounded-xl shadow-md mt-6">
         <h3 className="text-xl font-semibold mb-4 text-gray-800">
           Salary Details
         </h3>
 
-        {/* Salary Form - Only for Admin & Employee */}
         {(user.role === "admin" || user.role === "employee") && (
           <form
             onSubmit={handleSalarySubmit}
@@ -178,21 +196,23 @@ const UserProfile = () => {
           </form>
         )}
 
-        {/* Salary History */}
+        {/* SALARY HISTORY */}
         <div className="mt-6">
           <h4 className="text-lg font-semibold mb-2">Salary History</h4>
 
-          {salary.length === 0 ? (
+          {salaryList.length === 0 ? (
             <p className="text-gray-500">No salary records yet.</p>
           ) : (
             <ul className="space-y-3">
-              {salary.map((s) => (
+              {salaryList.map((s) => (
                 <li key={s._id} className="border p-3 rounded-lg bg-gray-50">
                   <p className="font-semibold">{s.month}</p>
                   <p>Base Salary: ₹{s.baseSalary}</p>
                   <p>Bonus: ₹{s.bonus}</p>
                   <p>Deductions: ₹{s.deductions}</p>
-                  <p className="font-bold">Total: ₹{s.totalSalary}</p>
+                  <p className="font-bold">
+                    Total: ₹{s.totalSalary}
+                  </p>
                 </li>
               ))}
             </ul>

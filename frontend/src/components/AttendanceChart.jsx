@@ -11,24 +11,30 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const AttendanceChart = ({ data }) => {
+const AttendanceChart = ({ data = [] }) => {
   const [view, setView] = useState("bar"); // bar | line
 
-  // ✅ ALWAYS normalize input
+  // ✅ Normalize & sanitize input (critical for prod)
   const chartData = useMemo(() => {
     if (!Array.isArray(data)) return [];
 
-    return data.map((d) => ({
-      date: d.date || d._id || "—",
-      hours:
-        Number(d.hours) ||
-        Number(d.totalHours) ||
-        Number(d.value) ||
-        0,
+    return data.map((d, i) => ({
+      date:
+        typeof d?.date === "string"
+          ? d.date
+          : typeof d?._id === "string"
+          ? d._id
+          : `Day ${i + 1}`,
+      hours: Number(
+        d?.hours ??
+        d?.totalHours ??
+        d?.value ??
+        0
+      ),
     }));
   }, [data]);
 
-  if (!chartData.length) {
+  if (chartData.length === 0) {
     return (
       <p className="text-sm text-gray-500">
         No attendance data available

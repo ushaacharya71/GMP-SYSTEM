@@ -1,17 +1,29 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
 
 const ManagerLeaveApproval = () => {
-  const [leaves, setLeaves] = useState([]);
+  const [rawLeaves, setRawLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState(null);
 
   const fetchPendingLeaves = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/leaves/pending");
-      setLeaves(res.data || []);
+
+      // ✅ Normalize response (production-safe)
+      const normalized = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data?.leaves)
+        ? res.data.leaves
+        : [];
+
+      setRawLeaves(normalized);
     } catch (err) {
       console.error("Failed to load pending leaves", err);
+      setRawLeaves([]);
     } finally {
       setLoading(false);
     }
@@ -20,6 +32,9 @@ const ManagerLeaveApproval = () => {
   useEffect(() => {
     fetchPendingLeaves();
   }, []);
+
+  // ✅ Always guaranteed array
+  const leaves = useMemo(() => rawLeaves, [rawLeaves]);
 
   const takeAction = async (id, action) => {
     try {
@@ -73,18 +88,28 @@ const ManagerLeaveApproval = () => {
               <tbody>
                 {leaves.map((l) => (
                   <tr key={l._id}>
-                    <td className="p-3 border">{l.user.name}</td>
-                    <td className="p-3 border capitalize">{l.type}</td>
                     <td className="p-3 border">
-                      {new Date(l.fromDate).toLocaleDateString()}
+                      {l.user?.name || "—"}
+                    </td>
+                    <td className="p-3 border capitalize">
+                      {l.type || "—"}
                     </td>
                     <td className="p-3 border">
-                      {new Date(l.toDate).toLocaleDateString()}
+                      {l.fromDate
+                        ? new Date(l.fromDate).toLocaleDateString()
+                        : "—"}
+                    </td>
+                    <td className="p-3 border">
+                      {l.toDate
+                        ? new Date(l.toDate).toLocaleDateString()
+                        : "—"}
                     </td>
                     <td className="p-3 border text-center font-semibold">
-                      {l.totalDays}
+                      {l.totalDays ?? "—"}
                     </td>
-                    <td className="p-3 border">{l.reason}</td>
+                    <td className="p-3 border">
+                      {l.reason || "—"}
+                    </td>
                     <td className="p-3 border space-x-2">
                       <button
                         disabled={actingId === l._id}
@@ -119,23 +144,31 @@ const ManagerLeaveApproval = () => {
                 className="border rounded-lg p-4 bg-gray-50"
               >
                 <div className="flex justify-between items-center mb-2">
-                  <p className="font-semibold">{l.user.name}</p>
+                  <p className="font-semibold">
+                    {l.user?.name || "—"}
+                  </p>
                   <span className="capitalize text-sm text-gray-600">
-                    {l.type}
+                    {l.type || "—"}
                   </span>
                 </div>
 
                 <p className="text-sm text-gray-600">
-                  📅 {new Date(l.fromDate).toLocaleDateString()} →{" "}
-                  {new Date(l.toDate).toLocaleDateString()}
+                  📅{" "}
+                  {l.fromDate
+                    ? new Date(l.fromDate).toLocaleDateString()
+                    : "—"}{" "}
+                  →{" "}
+                  {l.toDate
+                    ? new Date(l.toDate).toLocaleDateString()
+                    : "—"}
                 </p>
 
                 <p className="text-sm text-gray-600">
-                  Days: <strong>{l.totalDays}</strong>
+                  Days: <strong>{l.totalDays ?? "—"}</strong>
                 </p>
 
                 <p className="text-sm text-gray-600">
-                  Reason: {l.reason}
+                  Reason: {l.reason || "—"}
                 </p>
 
                 <div className="flex gap-3 mt-3">

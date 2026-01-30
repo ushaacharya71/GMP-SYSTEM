@@ -3,7 +3,15 @@ import api from "../api/axios";
 
 const AnnouncementList = () => {
   const [announcements, setAnnouncements] = useState([]);
-  const user = JSON.parse(localStorage.getItem("user"));
+
+  // ✅ Safe user parsing
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  })();
 
   /* ===============================
      FETCH ANNOUNCEMENTS
@@ -11,9 +19,20 @@ const AnnouncementList = () => {
   const fetchAnnouncements = async () => {
     try {
       const res = await api.get("/announcements");
-      setAnnouncements(res.data);
+
+      // ✅ Normalize response
+      const normalized = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data?.announcements)
+        ? res.data.announcements
+        : [];
+
+      setAnnouncements(normalized);
     } catch (error) {
       console.error("Error fetching announcements:", error);
+      setAnnouncements([]);
     }
   };
 
@@ -59,20 +78,23 @@ const AnnouncementList = () => {
           {announcements.map((a) => (
             <li
               key={a._id}
-              className="px-5 py-4 hover:bg-gray-50 transition flex justify-between gap-4"
+              className="px-5 py-4 hover:bg-gray-50 transition
+              flex justify-between gap-4"
             >
               {/* TEXT */}
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900">
-                  {a.title}
+                  {a.title || "Untitled"}
                 </p>
 
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                  {a.message}
+                  {a.message || "—"}
                 </p>
 
                 <p className="text-xs text-gray-400 mt-2">
-                  {new Date(a.createdAt).toLocaleDateString()}
+                  {a.createdAt
+                    ? new Date(a.createdAt).toLocaleDateString()
+                    : "—"}
                 </p>
               </div>
 
@@ -81,9 +103,9 @@ const AnnouncementList = () => {
                 <button
                   onClick={() => handleDelete(a._id)}
                   className="self-start text-xs font-medium
-                    text-red-600 hover:text-red-700
-                    border border-red-200 hover:border-red-300
-                    px-3 py-1.5 rounded-lg transition"
+                  text-red-600 hover:text-red-700
+                  border border-red-200 hover:border-red-300
+                  px-3 py-1.5 rounded-lg transition"
                 >
                   Delete
                 </button>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -11,8 +11,16 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const TeamPerformanceChart = ({ data = [] }) => {
+const TeamPerformanceChart = ({ data }) => {
   const [chartType, setChartType] = useState("bar"); // bar | line
+
+  // ✅ NORMALIZE DATA (CRITICAL FIX)
+  const safeData = useMemo(() => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.teamPerformance)) return data.teamPerformance;
+    return [];
+  }, [data]);
 
   return (
     <div
@@ -50,28 +58,18 @@ const TeamPerformanceChart = ({ data = [] }) => {
       </div>
 
       {/* CHART */}
-      {data.length === 0 ? (
+      {safeData.length === 0 ? (
         <div className="flex items-center justify-center h-[280px] text-gray-400 text-sm">
           No performance data available
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={320}>
           {chartType === "bar" ? (
-            <BarChart data={data}>
+            <BarChart data={safeData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 12 }}
-                stroke="#9ca3af"
-              />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#9ca3af" />
               <YAxis stroke="#9ca3af" />
               <Tooltip
-                contentStyle={{
-                  borderRadius: "14px",
-                  border: "none",
-                  background: "#ffffff",
-                  boxShadow: "0 12px 25px rgba(0,0,0,0.12)",
-                }}
                 formatter={(value) => [`₹ ${value}`, "Revenue"]}
               />
               <Bar
@@ -81,21 +79,11 @@ const TeamPerformanceChart = ({ data = [] }) => {
               />
             </BarChart>
           ) : (
-            <LineChart data={data}>
+            <LineChart data={safeData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 12 }}
-                stroke="#9ca3af"
-              />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#9ca3af" />
               <YAxis stroke="#9ca3af" />
               <Tooltip
-                contentStyle={{
-                  borderRadius: "14px",
-                  border: "none",
-                  background: "#ffffff",
-                  boxShadow: "0 12px 25px rgba(0,0,0,0.12)",
-                }}
                 formatter={(value) => [`₹ ${value}`, "Revenue"]}
               />
               <Line

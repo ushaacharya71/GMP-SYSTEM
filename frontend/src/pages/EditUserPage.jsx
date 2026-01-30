@@ -7,7 +7,10 @@ const EditUserPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const loggedInUser = JSON.parse(localStorage.getItem("user"));
+
   const [managers, setManagers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
     name: "",
@@ -22,27 +25,47 @@ const EditUserPage = () => {
     avatar: "",
   });
 
+  /* 🔒 AUTH GUARD */
+  useEffect(() => {
+    if (!loggedInUser?._id || loggedInUser.role !== "admin") {
+      localStorage.clear();
+      navigate("/");
+    }
+  }, [loggedInUser, navigate]);
+
   /* -------------------------------
       FETCH USER + MANAGERS
   -------------------------------- */
   useEffect(() => {
+    if (!id) return;
+
     fetchUser();
     fetchManagers();
-  }, []);
+  }, [id]);
 
   const fetchManagers = async () => {
     try {
       const res = await api.get("/users");
-      setManagers(res.data.filter((u) => u.role === "manager"));
+
+      const users = Array.isArray(res.data)
+        ? res.data
+        : res.data?.users || [];
+
+      setManagers(users.filter((u) => u.role === "manager"));
     } catch (error) {
       console.error("Error fetching managers:", error);
+      setManagers([]);
     }
   };
 
   const fetchUser = async () => {
     try {
+      setLoading(true);
+
       const res = await api.get(`/users/${id}`);
-      const u = res.data;
+      const u = res.data?.user || res.data;
+
+      if (!u) throw new Error("Invalid user data");
 
       setForm({
         name: u.name || "",
@@ -51,14 +74,21 @@ const EditUserPage = () => {
         role: u.role || "intern",
         teamName: u.teamName || "",
         position: u.position || "",
-        manager: u.manager?._id || "",
-        joiningDate: u.joiningDate ? u.joiningDate.split("T")[0] : "",
-        birthday: u.birthday ? u.birthday.split("T")[0] : "",
+        manager: u.manager?._id || u.manager || "",
+        joiningDate: u.joiningDate
+          ? u.joiningDate.split("T")[0]
+          : "",
+        birthday: u.birthday
+          ? u.birthday.split("T")[0]
+          : "",
         avatar: u.avatar || "",
       });
     } catch (error) {
       console.error("Error loading user:", error);
-      alert("Failed to load user details");
+      alert("❌ Failed to load user details");
+      navigate("/admin/manage-users");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,9 +119,17 @@ const EditUserPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ Intern MUST have manager
-    if (form.role === "intern" && !form.manager) {
-      alert("Please assign a manager to the intern.");
+    if (!form.name || !form.role) {
+      alert("Name and role are required");
+      return;
+    }
+
+    // Intern & employee must have manager
+    if (
+      ["intern", "employee"].includes(form.role) &&
+      !form.manager
+    ) {
+      alert("Please assign a manager");
       return;
     }
 
@@ -101,17 +139,29 @@ const EditUserPage = () => {
       navigate("/admin/manage-users");
     } catch (error) {
       console.error("Error updating:", error);
-      alert(error.response?.data?.message || "❌ Failed to update user");
+      alert(
+        error.response?.data?.message ||
+          "❌ Failed to update user"
+      );
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        Loading user details…
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen flex justify-center items-center">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-
         {/* HEADER */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Edit User</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Edit User
+          </h2>
           <button
             onClick={() => navigate(-1)}
             className="text-gray-600 hover:text-gray-800 flex items-center"
@@ -122,7 +172,6 @@ const EditUserPage = () => {
 
         {/* FORM */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
           <input
             type="text"
             name="name"
@@ -161,32 +210,33 @@ const EditUserPage = () => {
             <option value="intern">Intern</option>
           </select>
 
+          {/* INTERN / EMPLOYEE */}
+          {["intern", "employee"].includes(form.role) && (
+            <select
+              name="manager"
+              value={form.manager}
+              onChange={handleChange}
+              className="border rounded-lg p-2"
+            >
+              <option value="">Select Manager</option>
+              {managers.map((m) => (
+                <option key={m._id} value={m._id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           {/* INTERN */}
           {form.role === "intern" && (
-            <>
-              <select
-                name="manager"
-                value={form.manager}
-                onChange={handleChange}
-                className="border rounded-lg p-2"
-              >
-                <option value="">Select Manager</option>
-                {managers.map((m) => (
-                  <option key={m._id} value={m._id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="text"
-                name="teamName"
-                placeholder="Team Name"
-                value={form.teamName}
-                onChange={handleChange}
-                className="border rounded-lg p-2"
-              />
-            </>
+            <input
+              type="text"
+              name="teamName"
+              placeholder="Team Name"
+              value={form.teamName}
+              onChange={handleChange}
+              className="border rounded-lg p-2"
+            />
           )}
 
           {/* EMPLOYEE */}
@@ -214,7 +264,9 @@ const EditUserPage = () => {
           )}
 
           {/* DATES */}
-          <label className="text-sm text-gray-600">Joining Date</label>
+          <label className="text-sm text-gray-600">
+            Joining Date
+          </label>
           <input
             type="date"
             name="joiningDate"
@@ -223,7 +275,9 @@ const EditUserPage = () => {
             className="border rounded-lg p-2"
           />
 
-          <label className="text-sm text-gray-600">Birthday</label>
+          <label className="text-sm text-gray-600">
+            Birthday
+          </label>
           <input
             type="date"
             name="birthday"

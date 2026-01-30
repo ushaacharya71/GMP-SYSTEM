@@ -3,22 +3,26 @@ import api from "../api/axios";
 
 const LeaveSummary = () => {
   const [summary, setSummary] = useState(null);
+  const [error, setError] = useState(false);
+
   const user = JSON.parse(localStorage.getItem("user"));
 
+  /* ---------------- FETCH SUMMARY ---------------- */
   useEffect(() => {
     const fetchSummary = async () => {
       try {
         const res = await api.get("/leaves/summary");
-        setSummary(res.data); // ✅ trust backend only
-      } catch (error) {
-        console.error("Failed to fetch leave summary", error);
+        setSummary(res.data || null);
+      } catch (err) {
+        console.error("Failed to fetch leave summary", err);
+        setError(true);
       }
     };
 
     fetchSummary();
   }, []);
 
-  /* ❌ Interns do not have leave system */
+  /* ❌ INTERN BLOCK */
   if (user?.role === "intern") {
     return (
       <div className="bg-white rounded-xl shadow p-6 text-gray-500">
@@ -27,13 +31,27 @@ const LeaveSummary = () => {
     );
   }
 
-  if (!summary) {
+  /* ❌ ERROR */
+  if (error) {
     return (
-      <div className="bg-white rounded-xl shadow p-6 text-gray-500">
-        Loading leave summary...
+      <div className="bg-white rounded-xl shadow p-6 text-red-500">
+        Failed to load leave summary.
       </div>
     );
   }
+
+  /* ⏳ LOADING */
+  if (!summary) {
+    return (
+      <div className="bg-white rounded-xl shadow p-6 text-gray-500">
+        Loading leave summary…
+      </div>
+    );
+  }
+
+  /* SAFE ACCESS */
+  const casual = summary.casual || { used: 0, total: 0, remaining: 0 };
+  const sick = summary.sick || { used: 0, total: 0, remaining: 0 };
 
   return (
     <div className="bg-white rounded-xl shadow p-6">
@@ -43,43 +61,50 @@ const LeaveSummary = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* CASUAL */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <p className="text-sm text-gray-600">Casual Leave</p>
-
-          <p className="text-xl font-bold text-blue-600">
-            {summary.casual.used} / {summary.casual.total}
-          </p>
-
-          <p className="text-sm text-gray-500">
-            Remaining: {summary.casual.remaining}
-          </p>
-
-          {summary.casual.remaining === 0 && (
-            <p className="text-xs text-red-500 mt-1">
-              Casual leave exhausted
-            </p>
-          )}
-        </div>
+        <LeaveCard
+          title="Casual Leave"
+          used={casual.used}
+          total={casual.total}
+          remaining={casual.remaining}
+          color="blue"
+        />
 
         {/* SICK */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <p className="text-sm text-gray-600">Sick Leave</p>
-
-          <p className="text-xl font-bold text-red-600">
-            {summary.sick.used} / {summary.sick.total}
-          </p>
-
-          <p className="text-sm text-gray-500">
-            Remaining: {summary.sick.remaining}
-          </p>
-
-          {summary.sick.remaining === 0 && (
-            <p className="text-xs text-red-500 mt-1">
-              Sick leave exhausted
-            </p>
-          )}
-        </div>
+        <LeaveCard
+          title="Sick Leave"
+          used={sick.used}
+          total={sick.total}
+          remaining={sick.remaining}
+          color="red"
+        />
       </div>
+    </div>
+  );
+};
+
+/* ---------------- REUSABLE CARD ---------------- */
+const LeaveCard = ({ title, used, total, remaining, color }) => {
+  const exhausted = remaining === 0;
+
+  return (
+    <div className="border rounded-lg p-4 bg-gray-50">
+      <p className="text-sm text-gray-600">{title}</p>
+
+      <p
+        className={`text-xl font-bold text-${color}-600`}
+      >
+        {used} / {total}
+      </p>
+
+      <p className="text-sm text-gray-500">
+        Remaining: {remaining}
+      </p>
+
+      {exhausted && (
+        <p className="text-xs text-red-500 mt-1">
+          {title} exhausted
+        </p>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -14,14 +14,26 @@ import {
 const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
   const location = useLocation();
 
-  const links = [
-    { name: "Dashboard", path: "/admin", icon: <Home size={20} /> },
-    { name: "Manage Users", path: "/admin/manage-users", icon: <UserPlus size={20} /> },
-    { name: "Employees", path: "/admin/employees", icon: <Users size={20} /> },
-    { name: "Interns", path: "/admin/interns", icon: <Users size={20} /> },
-    { name: "Revenue", path: "/admin/revenue", icon: <BarChart3 size={20} /> },
-    { name: "Announcements", path: "/admin/announcements", icon: <Megaphone size={20} /> },
-  ];
+  // ✅ Memoized links (no re-creation on render)
+  const links = useMemo(
+    () => [
+      { name: "Dashboard", path: "/admin", icon: <Home size={20} /> },
+      {
+        name: "Manage Users",
+        path: "/admin/manage-users",
+        icon: <UserPlus size={20} />,
+      },
+      { name: "Employees", path: "/admin/employees", icon: <Users size={20} /> },
+      { name: "Interns", path: "/admin/interns", icon: <Users size={20} /> },
+      { name: "Revenue", path: "/admin/revenue", icon: <BarChart3 size={20} /> },
+      {
+        name: "Announcements",
+        path: "/admin/announcements",
+        icon: <Megaphone size={20} />,
+      },
+    ],
+    []
+  );
 
   const SidebarContent = (
     <motion.aside
@@ -35,13 +47,14 @@ const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
     >
       {/* HEADER */}
       <div className="p-6 border-b border-white/15 relative">
-       <img
-           src="/logo.png"
-          alt="Glowlogics"
-          className="max-h-70 w-auto object-contain drop-shadow-lg"
-         />
-
-
+        <img
+          src="/logo.png"
+          alt="Glowlogics Logo"
+          className="max-h-16 w-auto object-contain drop-shadow-lg"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
 
         <button
           onClick={() => setIsOpen(false)}
@@ -54,11 +67,13 @@ const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
       {/* NAV */}
       <nav className="flex flex-col mt-6 space-y-1.5 px-3">
         {links.map((link) => {
-          const active = location.pathname === link.path;
+          const active =
+            location.pathname === link.path ||
+            location.pathname.startsWith(`${link.path}/`);
 
           return (
             <Link
-              key={link.name}
+              key={link.path}
               to={link.path}
               onClick={() => setIsOpen(false)}
               className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
@@ -68,7 +83,6 @@ const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
                     : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
             >
-              {/* ACTIVE INDICATOR */}
               {active && (
                 <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-yellow-300" />
               )}

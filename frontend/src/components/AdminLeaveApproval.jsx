@@ -8,10 +8,21 @@ const AdminLeaveApproval = () => {
 
   const fetchLeaves = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/leaves/pending");
-      setLeaves(res.data || []);
+
+      const normalized = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data?.leaves)
+        ? res.data.leaves
+        : [];
+
+      setLeaves(normalized);
     } catch (err) {
       console.error("Failed to fetch admin leaves", err);
+      setLeaves([]);
     } finally {
       setLoading(false);
     }
@@ -44,20 +55,20 @@ const AdminLeaveApproval = () => {
   return (
     <div className="bg-white p-6 rounded-xl shadow mt-8">
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
-        <div>
-          <h2 className="text-xl font-semibold">Manager Leave Approvals</h2>
-          <p className="text-sm text-gray-500">
-            Review and approve manager leave requests
-          </p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Manager Leave Approvals</h2>
+        <p className="text-sm text-gray-500">
+          Review and approve manager leave requests
+        </p>
       </div>
 
       {leaves.length === 0 ? (
-        <p className="text-gray-500">✅ No pending manager leave requests</p>
+        <p className="text-gray-500">
+          ✅ No pending manager leave requests
+        </p>
       ) : (
         <>
-          {/* ================= DESKTOP TABLE ================= */}
+          {/* DESKTOP TABLE */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full border text-sm">
               <thead className="bg-gray-100">
@@ -75,29 +86,33 @@ const AdminLeaveApproval = () => {
               <tbody>
                 {leaves.map((l) => (
                   <tr key={l._id}>
-                    <td className="p-3 border">{l.user.name}</td>
-                    <td className="p-3 border">{l.user.teamName || "-"}</td>
-                    <td className="p-3 border capitalize">{l.type}</td>
+                    <td className="p-3 border">{l.user?.name || "—"}</td>
+                    <td className="p-3 border">{l.user?.teamName || "—"}</td>
+                    <td className="p-3 border capitalize">{l.type || "—"}</td>
                     <td className="p-3 border">
-                      {new Date(l.fromDate).toLocaleDateString()}
+                      {l.fromDate
+                        ? new Date(l.fromDate).toLocaleDateString()
+                        : "—"}
                     </td>
                     <td className="p-3 border">
-                      {new Date(l.toDate).toLocaleDateString()}
+                      {l.toDate
+                        ? new Date(l.toDate).toLocaleDateString()
+                        : "—"}
                     </td>
                     <td className="p-3 border text-center font-semibold">
-                      {l.totalDays}
+                      {l.totalDays ?? "—"}
                     </td>
-                    <td className="p-3 border">{l.reason}</td>
+                    <td className="p-3 border">{l.reason || "—"}</td>
                     <td className="p-3 border space-x-2">
                       <button
-                        disabled={processingId === l._id}
+                        disabled={processingId !== null}
                         onClick={() => handleAction(l._id, "approved")}
                         className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded disabled:opacity-50"
                       >
                         Approve
                       </button>
                       <button
-                        disabled={processingId === l._id}
+                        disabled={processingId !== null}
                         onClick={() => handleAction(l._id, "rejected")}
                         className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded disabled:opacity-50"
                       >
@@ -110,42 +125,50 @@ const AdminLeaveApproval = () => {
             </table>
           </div>
 
-          {/* ================= MOBILE CARDS ================= */}
+          {/* MOBILE CARDS */}
           <div className="space-y-4 md:hidden">
             {leaves.map((l) => (
               <div key={l._id} className="border rounded-lg p-4 bg-gray-50">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="font-semibold">{l.user.name}</p>
+                <div className="flex justify-between mb-2">
+                  <p className="font-semibold">{l.user?.name || "—"}</p>
                   <span className="capitalize text-sm text-gray-600">
-                    {l.type}
+                    {l.type || "—"}
                   </span>
                 </div>
 
                 <p className="text-sm text-gray-600">
-                  Team: {l.user.teamName || "-"}
+                  Team: {l.user?.teamName || "—"}
                 </p>
 
                 <p className="text-sm text-gray-600">
-                  📅 {new Date(l.fromDate).toLocaleDateString()} →{" "}
-                  {new Date(l.toDate).toLocaleDateString()}
+                  📅{" "}
+                  {l.fromDate
+                    ? new Date(l.fromDate).toLocaleDateString()
+                    : "—"}{" "}
+                  →{" "}
+                  {l.toDate
+                    ? new Date(l.toDate).toLocaleDateString()
+                    : "—"}
                 </p>
 
                 <p className="text-sm text-gray-600">
-                  Days: <strong>{l.totalDays}</strong>
+                  Days: <strong>{l.totalDays ?? "—"}</strong>
                 </p>
 
-                <p className="text-sm text-gray-600">Reason: {l.reason}</p>
+                <p className="text-sm text-gray-600">
+                  Reason: {l.reason || "—"}
+                </p>
 
                 <div className="flex gap-3 mt-3">
                   <button
-                    disabled={processingId === l._id}
+                    disabled={processingId !== null}
                     onClick={() => handleAction(l._id, "approved")}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded disabled:opacity-50"
                   >
                     Approve
                   </button>
                   <button
-                    disabled={processingId === l._id}
+                    disabled={processingId !== null}
                     onClick={() => handleAction(l._id, "rejected")}
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded disabled:opacity-50"
                   >

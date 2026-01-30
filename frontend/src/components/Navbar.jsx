@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Menu, Users } from "lucide-react";
 import ActiveToday from "./ActiveToday";
 import api from "../api/axios";
@@ -10,25 +10,38 @@ const Navbar = ({ user, onMenuClick }) => {
   const canViewActive =
     user?.role === "admin" || user?.role === "manager";
 
+  // ✅ Stable + safe fetch
+  const fetchCount = useCallback(async () => {
+    try {
+      const res = await api.get("/attendance/active-today");
+
+      const normalized = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data?.users)
+        ? res.data.users
+        : [];
+
+      setActiveCount(normalized.length);
+    } catch (err) {
+      console.error("Active count fetch failed", err);
+      setActiveCount(0);
+    }
+  }, []);
+
   useEffect(() => {
     if (!canViewActive) return;
 
-    const fetchCount = async () => {
-      try {
-        const res = await api.get("/attendance/active-today");
-        setActiveCount(res.data?.length || 0);
-      } catch (err) {
-        console.error("Active count fetch failed");
-      }
-    };
-
     fetchCount();
     const interval = setInterval(fetchCount, 60000);
+
     return () => clearInterval(interval);
-  }, [canViewActive]);
+  }, [canViewActive, fetchCount]);
 
   return (
-    <div className="relative flex items-center justify-between
+    <div
+      className="relative flex items-center justify-between
       bg-white border border-gray-100
       px-4 md:px-6 py-4 mb-6
       rounded-2xl shadow-sm"
@@ -45,10 +58,10 @@ const Navbar = ({ user, onMenuClick }) => {
 
         <div className="leading-tight">
           <h1 className="text-base md:text-lg font-semibold text-gray-800">
-            Welcome back, {user?.name}
+            Welcome back{user?.name ? `, ${user.name}` : ""}
           </h1>
           <p className="text-xs md:text-sm text-gray-500 capitalize">
-            {user?.role} dashboard
+            {user?.role || "user"} dashboard
           </p>
         </div>
       </div>
@@ -70,8 +83,10 @@ const Navbar = ({ user, onMenuClick }) => {
                 Active Today
               </span>
 
-              <span className="ml-1 px-2 py-0.5 text-xs font-semibold
-                rounded-full bg-emerald-600 text-white">
+              <span
+                className="ml-1 px-2 py-0.5 text-xs font-semibold
+                rounded-full bg-emerald-600 text-white"
+              >
                 {activeCount}
               </span>
             </button>
@@ -99,13 +114,14 @@ const Navbar = ({ user, onMenuClick }) => {
         </div>
 
         {/* AVATAR */}
-        <div className="w-9 h-9 rounded-full
+        <div
+          className="w-9 h-9 rounded-full
           bg-gradient-to-br from-orange-500 to-orange-600
           flex items-center justify-center
           text-white font-semibold shadow
           ring-2 ring-orange-100"
         >
-          {user?.name?.charAt(0)?.toUpperCase()}
+          {user?.name?.charAt(0)?.toUpperCase() || "U"}
         </div>
       </div>
     </div>

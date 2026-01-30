@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 
 const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
@@ -15,36 +15,41 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
     password: "",
   });
 
-  // Only managers for dropdown
-  const managers = allUsers.filter((u) => u.role === "manager");
+  // ✅ Always array-safe + memoized
+  const managers = useMemo(() => {
+    if (!Array.isArray(allUsers)) return [];
+    return allUsers.filter((u) => u?.role === "manager");
+  }, [allUsers]);
 
   /* ----------------------------------
      LOAD USER DATA (EDIT MODE)
   ---------------------------------- */
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        role: user.role || "intern",
-        position: user.position || "",
-        teamName: user.teamName || "",
-        manager: user.manager?._id || user.manager || "",
-        joiningDate: user.joiningDate
-          ? user.joiningDate.split("T")[0]
-          : "",
-        birthday: user.birthday ? user.birthday.split("T")[0] : "",
-        password: "",
-      });
-    }
+    if (!user) return;
+
+    setFormData({
+      name: user.name || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      role: user.role || "intern",
+      position: user.position || "",
+      teamName: user.teamName || "",
+      manager: user.manager?._id || user.manager || "",
+      joiningDate: user.joiningDate
+        ? user.joiningDate.split("T")[0]
+        : "",
+      birthday: user.birthday ? user.birthday.split("T")[0] : "",
+      password: "",
+    });
   }, [user]);
 
   /* ----------------------------------
      INPUT HANDLER
   ---------------------------------- */
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   /* ----------------------------------
      SUBMIT HANDLER (VALIDATION)
@@ -52,21 +57,30 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.role) {
+    const cleaned = {
+      ...formData,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      teamName: formData.teamName.trim(),
+      position: formData.position.trim(),
+    };
+
+    if (!cleaned.name || !cleaned.email || !cleaned.role) {
       alert("Name, Email & Role are required");
       return;
     }
 
-    // Intern & Probation employee MUST have manager
+    // Intern & Employee MUST have manager
     if (
-      ["intern", "employee"].includes(formData.role) &&
-      !formData.manager
+      ["intern", "employee"].includes(cleaned.role) &&
+      !cleaned.manager
     ) {
       alert("Please assign a manager");
       return;
     }
 
-    onSave(formData);
+    onSave(cleaned);
   };
 
   return (
@@ -85,7 +99,6 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-
           {/* NAME */}
           <input
             type="text"
@@ -130,7 +143,7 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
             <option value="intern">Intern</option>
           </select>
 
-          {/* INTERN / EMPLOYEE → MANAGER */}
+          {/* MANAGER (INTERN / EMPLOYEE) */}
           {["intern", "employee"].includes(formData.role) && (
             <select
               name="manager"

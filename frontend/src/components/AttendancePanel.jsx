@@ -24,14 +24,24 @@ const AttendancePanel = () => {
     const loadTodayAttendance = async () => {
       try {
         const res = await api.get("/attendance/me");
-        const today = new Date().toISOString().split("T")[0];
 
-        const todayRecord = res.data.find((r) => r.date === today);
-        if (!todayRecord) return;
+        // ✅ Normalize response (critical)
+        const records = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+        const today = new Date().toISOString().split("T")[0];
+        const todayRecord = records.find((r) => r?.date === today);
+
+        if (!todayRecord || !Array.isArray(todayRecord.events)) return;
 
         const updated = { ...emptyAttendance };
         todayRecord.events.forEach((e) => {
-          updated[e.type] = new Date(e.time).toLocaleTimeString();
+          if (e?.type && e?.time) {
+            updated[e.type] = new Date(e.time).toLocaleTimeString();
+          }
         });
 
         setAttendance(updated);
@@ -127,9 +137,7 @@ const AttendancePanel = () => {
                     : "bg-white border-gray-200 hover:border-orange-400 hover:shadow-sm"
                 }`}
             >
-              <p className="text-sm font-medium">
-                {label}
-              </p>
+              <p className="text-sm font-medium">{label}</p>
               <p className="mt-2 text-xs text-gray-500">
                 {value ? "Marked" : "Tap to mark"}
               </p>
@@ -150,9 +158,7 @@ const AttendancePanel = () => {
               key={key}
               className="flex justify-between text-gray-600"
             >
-              <span>
-                {key.replace(/([A-Z])/g, " $1")}
-              </span>
+              <span>{key.replace(/([A-Z])/g, " $1")}</span>
               <span className="font-medium text-gray-900">
                 {value || "—"}
               </span>

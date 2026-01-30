@@ -11,21 +11,33 @@ const ManageUsers = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  /* ================= ADMIN GUARD ================= */
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("user"));
+    if (!stored || stored.role !== "admin") {
+      window.location.href = "/";
+      return;
+    }
+    fetchUsers();
+  }, []);
 
   /* ================= FETCH USERS ================= */
   const fetchUsers = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/users");
-      setUsers(res.data);
+      setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching users:", err);
       alert("Failed to fetch users");
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   /* ================= HANDLERS ================= */
   const handleAdd = () => {
@@ -35,42 +47,57 @@ const ManageUsers = () => {
   };
 
   const handleEdit = (user) => {
+    if (!user) return;
     setSelectedUser(user);
     setIsEdit(true);
     setShowModal(true);
   };
 
   const handleDelete = (user) => {
+    if (!user) return;
     setSelectedUser(user);
     setShowDelete(true);
   };
 
   const confirmDelete = async () => {
+    if (!selectedUser?._id) return;
+
     try {
+      setSaving(true);
       await api.delete(`/users/${selectedUser._id}`);
       setShowDelete(false);
+      setSelectedUser(null);
       fetchUsers();
     } catch (err) {
       console.error("Error deleting user:", err);
       alert("Failed to delete user");
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleSave = async (data) => {
+    if (!data) return;
+
     try {
-      if (isEdit) {
+      setSaving(true);
+      if (isEdit && selectedUser?._id) {
         await api.put(`/users/${selectedUser._id}`, data);
       } else {
         await api.post("/users", data);
       }
       setShowModal(false);
+      setSelectedUser(null);
       fetchUsers();
     } catch (err) {
       console.error("Error saving user:", err);
       alert(err.response?.data?.message || "Failed to save user");
+    } finally {
+      setSaving(false);
     }
   };
 
+  /* ================= UI ================= */
   return (
     <div className="p-3 sm:p-6 bg-gray-100 min-h-screen">
       <motion.div
@@ -92,11 +119,13 @@ const ManageUsers = () => {
 
           <button
             onClick={handleAdd}
+            disabled={saving}
             className="
               w-full sm:w-auto
               bg-gradient-to-r from-orange-500 to-orange-600
               text-white px-5 py-2.5 rounded-xl font-semibold
               hover:shadow-lg hover:scale-[1.02]
+              disabled:opacity-60 disabled:cursor-not-allowed
               transition-all
             "
           >
@@ -104,16 +133,26 @@ const ManageUsers = () => {
           </button>
         </div>
 
-        {/* TABLE WRAPPER */}
-        <div className="relative -mx-4 sm:mx-0 overflow-x-auto">
-          <div className="min-w-[700px] sm:min-w-full px-4 sm:px-0">
-            <UserTable
-              users={users}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+        {/* CONTENT */}
+        {loading ? (
+          <div className="text-center py-10 text-gray-500">
+            Loading users…
           </div>
-        </div>
+        ) : users.length === 0 ? (
+          <div className="text-center py-10 text-gray-500">
+            No users found. Start by adding one.
+          </div>
+        ) : (
+          <div className="relative -mx-4 sm:mx-0 overflow-x-auto">
+            <div className="min-w-[700px] sm:min-w-full px-4 sm:px-0">
+              <UserTable
+                users={users}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* USER MODAL */}
@@ -122,16 +161,17 @@ const ManageUsers = () => {
           user={selectedUser}
           isEdit={isEdit}
           allUsers={users}
-          onClose={() => setShowModal(false)}
+          onClose={() => !saving && setShowModal(false)}
           onSave={handleSave}
         />
       )}
 
       {/* DELETE CONFIRM */}
-      {showDelete && (
+      {showDelete && selectedUser && (
         <ConfirmDeleteModal
           user={selectedUser}
-          onClose={() => setShowDelete(false)}
+          loading={saving}
+          onClose={() => !saving && setShowDelete(false)}
           onConfirm={confirmDelete}
         />
       )}

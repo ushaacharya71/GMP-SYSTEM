@@ -1,8 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
+import { useNavigate } from "react-router-dom";
 
 const ApplyLeave = () => {
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
+
+  /* 🔒 AUTH GUARD */
+  useEffect(() => {
+    if (!user?._id) {
+      localStorage.clear();
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const [form, setForm] = useState({
     type: "",
@@ -11,16 +21,25 @@ const ApplyLeave = () => {
     reason: "",
   });
 
-  const [summary, setSummary] = useState(null);
+  const [rawSummary, setRawSummary] = useState({});
   const [loading, setLoading] = useState(false);
 
   /* ================= FETCH LEAVE SUMMARY ================= */
   const fetchSummary = async () => {
     try {
       const res = await api.get("/leaves/summary");
-      setSummary(res.data);
+
+      // ✅ Normalize summary (production-safe)
+      const normalized =
+        res.data?.summary ||
+        res.data?.data ||
+        res.data ||
+        {};
+
+      setRawSummary(normalized);
     } catch (err) {
-      console.error("Failed to load leave summary");
+      console.error("Failed to load leave summary", err);
+      setRawSummary({});
     }
   };
 
@@ -28,9 +47,13 @@ const ApplyLeave = () => {
     fetchSummary();
   }, []);
 
-  /* ❌ INTERN BLOCK */
+  /* ❌ INTERN BLOCK (CLEAR UX) */
   if (user?.role === "intern") {
-    return null;
+    return (
+      <div className="bg-white p-6 rounded-xl shadow text-gray-600">
+        🚫 Interns are not eligible to apply for leave.
+      </div>
+    );
   }
 
   /* ================= HANDLE INPUT ================= */
@@ -39,19 +62,28 @@ const ApplyLeave = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* ================= CALCULATE DAYS ================= */
-  const totalDays =
-    form.fromDate && form.toDate
-      ? Math.floor(
-          (new Date(form.toDate) - new Date(form.fromDate)) /
-            (1000 * 60 * 60 * 24)
-        ) + 1
-      : 0;
+  /* ================= CALCULATE DAYS (SAFE) ================= */
+  const totalDays = useMemo(() => {
+    if (!form.fromDate || !form.toDate) return 0;
+
+    const start = new Date(form.fromDate);
+    const end = new Date(form.toDate);
+
+    if (end < start) return 0;
+
+    const diff =
+      Math.ceil(
+        (end.setHours(0,0,0,0) - start.setHours(0,0,0,0)) /
+          (1000 * 60 * 60 * 24)
+      ) + 1;
+
+    return diff;
+  }, [form.fromDate, form.toDate]);
 
   /* ================= BALANCE ================= */
   const remaining =
-    form.type && summary
-      ? summary[form.type]?.remaining ?? 0
+    form.type && rawSummary
+      ? rawSummary?.[form.type]?.remaining ?? 0
       : null;
 
   const isExhausted =
@@ -88,7 +120,6 @@ const ApplyLeave = () => {
 
       alert("✅ Leave applied successfully");
 
-      // reset form
       setForm({
         type: "",
         fromDate: "",
@@ -96,10 +127,12 @@ const ApplyLeave = () => {
         reason: "",
       });
 
-      // refresh balance
       fetchSummary();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to apply leave");
+      alert(
+        err.response?.data?.message ||
+          "Failed to apply leave"
+      );
     } finally {
       setLoading(false);
     }
@@ -122,7 +155,7 @@ const ApplyLeave = () => {
       </select>
 
       {/* BALANCE INFO */}
-      {form.type && summary && (
+      {form.type && remaining !== null && (
         <p
           className={`text-sm mb-2 ${
             isExhausted ? "text-red-600" : "text-green-600"
@@ -137,6 +170,7 @@ const ApplyLeave = () => {
       <input
         type="date"
         name="fromDate"
+        min={new Date().toISOString().split("T")[0]}
         value={form.fromDate}
         onChange={handleChange}
         className="border p-2 rounded w-full mb-3"
@@ -146,6 +180,7 @@ const ApplyLeave = () => {
       <input
         type="date"
         name="toDate"
+        min={form.fromDate || new Date().toISOString().split("T")[0]}
         value={form.toDate}
         onChange={handleChange}
         className="border p-2 rounded w-full mb-3"
@@ -162,7 +197,13 @@ const ApplyLeave = () => {
 
       <button
         onClick={submit}
-        disabled={loading || isExhausted}
+        disabled={
+          loading ||
+          isExhausted ||
+          !form.type ||
+          !form.fromDate ||
+          !form.toDate
+        }
         className={`px-4 py-2 rounded w-full text-white transition ${
           loading || isExhausted
             ? "bg-gray-400 cursor-not-allowed"
