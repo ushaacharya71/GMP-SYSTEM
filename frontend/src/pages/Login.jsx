@@ -33,11 +33,20 @@ const Login = () => {
   };
 
   return (
-    <div
+     <div
       className="min-h-screen flex items-center justify-center px-4"
       style={{
-        background:
-          "radial-gradient(circle at top, #FFEDD5 0%, #FB923C 35%, #F97316 65%, #9A3412 100%)",
+        background: `
+          linear-gradient(
+            to bottom,
+            #321300 0%,
+            #5c2308 22%,
+            #6b2a0a 38%,
+            #3f1806 58%,
+            #1b0c03 78%,
+            #000000 100%
+          )
+        `,
       }}
     >
       {/* CARD */}
@@ -68,7 +77,7 @@ const Login = () => {
               Glowlogics
             </h1>
             <p className="mt-4 text-sm text-orange-100 max-w-xs leading-relaxed">
-              A modern CRM to manage attendance, performance, revenue & teams —
+              A modern Glowlogics Management Portel to manage attendance, performance, revenue & teams
               all in one place.
             </p>
           </motion.div>
@@ -113,7 +122,7 @@ const Login = () => {
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                   >
-                    <option value="admin">Admin</option>
+                    <option value="admin">System Manager</option>
                     <option value="manager">Manager</option>
                     <option value="employee">Employee</option>
                     <option value="intern">Intern</option>

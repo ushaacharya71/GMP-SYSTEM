@@ -30,17 +30,18 @@ const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
       exit={{ x: -260 }}
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       className="w-64 h-screen fixed left-0 top-0 z-50 flex flex-col
-      bg-gradient-to-b from-orange-500 via-orange-600 to-orange-700
+      bg-gradient-to-b from-black via-orange-600 to-orange-700
       shadow-2xl text-white"
     >
       {/* HEADER */}
       <div className="p-6 border-b border-white/15 relative">
-        <h2 className="text-2xl font-bold tracking-wide text-center">
-          Glowlogics
-        </h2>
-        <p className="text-[11px] uppercase text-center text-orange-100 mt-1 tracking-widest">
-          Admin Panel
-        </p>
+       <img
+           src="/logo.png"
+          alt="Glowlogics"
+          className="max-h-70 w-auto object-contain drop-shadow-lg"
+         />
+
+
 
         <button
           onClick={() => setIsOpen(false)}
