@@ -130,11 +130,7 @@ const UserProfile = () => {
       {/* PROFILE */}
       <section className="bg-white border rounded-2xl p-6 shadow-sm mb-6">
         <div className="flex flex-col sm:flex-row gap-6">
-         <img
-  src={user?.avatar || "/defaultavatar.png"}
-  alt={user?.name || "User"}
-  className="w-24 h-24 rounded-full border object-cover"
-/>
+        {/* avtar image need to update */}
 
           <div className="flex-1">
             <h2 className="text-xl font-semibold">{user.name}</h2>
