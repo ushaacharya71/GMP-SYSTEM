@@ -4,7 +4,6 @@ import api from "../api/axios";
 import { ArrowLeft } from "lucide-react";
 import RevenueChart from "../components/RevenueChart";
 import AttendanceChart from "../components/AttendanceChart";
-import defaultAvatar from "../assets/defaultAvatar.png";
 import { toast } from "react-toastify";
 
 const UserProfile = () => {
@@ -111,8 +110,7 @@ const UserProfile = () => {
   const canManageSalary =
     loggedInUser?.role === "admin" || loggedInUser?.role === "manager";
 
-  const hideSalaryForUser =
-    user.role === "intern" || user.role === "employee";
+  const hideSalaryForUser = user.role === "intern" || user.role === "employee";
 
   const joinedDate = user.joiningDate
     ? new Date(user.joiningDate).toLocaleDateString()
@@ -132,7 +130,7 @@ const UserProfile = () => {
       <section className="bg-white border rounded-2xl p-6 shadow-sm mb-6">
         <div className="flex flex-col sm:flex-row gap-6">
           <img
-            src={user.avatar || defaultAvatar}
+            src={user.avatar || "/default-avatar.png"}
             alt={user.name}
             className="w-24 h-24 rounded-full border object-cover"
           />
@@ -160,9 +158,7 @@ const UserProfile = () => {
         </div>
 
         <div className="bg-white border rounded-2xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold mb-3">
-            Attendance Overview
-          </h3>
+          <h3 className="text-sm font-semibold mb-3">Attendance Overview</h3>
           <AttendanceChart data={attendance} />
         </div>
       </section>
@@ -212,21 +208,14 @@ const UserProfile = () => {
           </form>
 
           <div className="mt-6">
-            <h4 className="text-sm font-semibold mb-3">
-              Salary History
-            </h4>
+            <h4 className="text-sm font-semibold mb-3">Salary History</h4>
 
             {salary.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                No salary records found.
-              </p>
+              <p className="text-sm text-gray-500">No salary records found.</p>
             ) : (
               <ul className="space-y-3">
                 {salary.map((s) => (
-                  <li
-                    key={s._id}
-                    className="border rounded-xl p-4 bg-gray-50"
-                  >
+                  <li key={s._id} className="border rounded-xl p-4 bg-gray-50">
                     <div className="flex justify-between text-sm font-medium">
                       <span>{s.month}</span>
                       <span>₹{s.totalSalary}</span>
