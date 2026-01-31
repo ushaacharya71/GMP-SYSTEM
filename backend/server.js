@@ -22,28 +22,36 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
-// ================= CORS (PRODUCTION FIX) =================
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",")
-  : [];
+// ================= CORS (FINAL PRODUCTION CONFIG) =================
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://gmp.glowlogics.in",
+  "https://glowlogics.in",
+];
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",        // local frontend
-      "https://gmp.vercel.app"        // production frontend
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (Postman, mobile apps, server-to-server)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(
+        new Error(`CORS blocked for origin: ${origin}`),
+        false
+      );
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// allow preflight requests
-app.options("*", cors());
-
-
-// allow preflight requests
+// ✅ Handle preflight requests correctly
 app.options("*", cors());
 
 // ================= MIDDLEWARE =================
