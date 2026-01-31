@@ -4,6 +4,7 @@ import api from "../api/axios";
 import { ArrowLeft } from "lucide-react";
 import RevenueChart from "./RevenueChart";
 import AttendanceSummary from "./AttendanceSummary";
+import { toast } from "react-toastify";
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -71,7 +72,8 @@ const UserProfile = () => {
         month,
       });
 
-      alert("Salary updated successfully!");
+      toast.success("Salary updated successfully");
+
       setBaseSalary("");
       setBonus("");
       setDeductions("");
@@ -79,7 +81,7 @@ const UserProfile = () => {
       fetchSalary();
     } catch (err) {
       console.error("Error updating salary:", err);
-      alert("Failed to update salary");
+      toast.error("Failed to update salary");
     }
   };
 
@@ -140,7 +142,6 @@ const UserProfile = () => {
           <h3 className="font-semibold mb-4 text-gray-800">
             Attendance Summary
           </h3>
-          {/* ✅ FIXED */}
           <AttendanceSummary userId={id} />
         </div>
       </div>
@@ -198,7 +199,9 @@ const UserProfile = () => {
 
         {/* SALARY HISTORY */}
         <div className="mt-6">
-          <h4 className="text-lg font-semibold mb-2">Salary History</h4>
+          <h4 className="text-lg font-semibold mb-2">
+            Salary History
+          </h4>
 
           {salaryList.length === 0 ? (
             <p className="text-gray-500">No salary records yet.</p>

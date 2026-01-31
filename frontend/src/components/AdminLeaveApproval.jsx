@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { toast } from "react-toastify";
 
 const AdminLeaveApproval = () => {
   const [leaves, setLeaves] = useState([]);
@@ -38,7 +39,7 @@ const AdminLeaveApproval = () => {
       await api.post(`/leaves/${id}/action`, { action });
       fetchLeaves();
     } catch (err) {
-      alert(err.response?.data?.message || "Action failed");
+      toast.error(err.response?.data?.message || "Action failed");
     } finally {
       setProcessingId(null);
     }

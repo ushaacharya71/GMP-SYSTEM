@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
+import { toast } from "react-toastify";
 
 const ManagerLeaveApproval = () => {
   const [rawLeaves, setRawLeaves] = useState([]);
@@ -42,7 +43,7 @@ const ManagerLeaveApproval = () => {
       await api.post(`/leaves/${id}/action`, { action });
       fetchPendingLeaves();
     } catch (err) {
-      alert(err.response?.data?.message || "Action failed");
+      toast.error(err.response?.data?.message || "Action failed");
     } finally {
       setActingId(null);
     }

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import RevenueChart from "../components/RevenueChart";
 import AttendanceChart from "../components/AttendanceChart";
 import defaultAvatar from "../assets/defaultavatar.png";
+import { toast } from "react-toastify";
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -63,10 +64,13 @@ const UserProfile = () => {
   const handleSalarySubmit = async (e) => {
     e.preventDefault();
 
-    if (!month) return alert("Please select month");
+    if (!month) {
+      toast.error("Please select month");
+      return;
+    }
 
     if (Number(baseSalary) <= 0) {
-      alert("Enter valid base amount");
+      toast.error("Enter valid base amount");
       return;
     }
 
@@ -79,7 +83,8 @@ const UserProfile = () => {
         month,
       });
 
-      alert("✅ Salary updated");
+      toast.success("Salary updated successfully");
+
       setBaseSalary("");
       setBonus("");
       setDeductions("");
@@ -88,7 +93,7 @@ const UserProfile = () => {
       const res = await api.get(`/salary/${id}`);
       setSalary(Array.isArray(res.data) ? res.data : []);
     } catch {
-      alert("Failed to update salary");
+      toast.error("Failed to update salary");
     }
   };
 

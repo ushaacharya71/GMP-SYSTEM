@@ -14,56 +14,37 @@ import AdminProfile from "./pages/AdminProfile";
 import EditUserPage from "./pages/EditUserPage";
 import AddUserPage from "./pages/AddUserPage";
 import ManageUsers from "./pages/ManageUsers";
+import Unauthorized from "./pages/Unauthorized";
+
+import ProtectedRoute from "./pages/ProtectedRoute";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-/* =========================
-   ✅ PROTECTED ROUTE
-========================= */
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  if (!token || !user) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
-
-/* =========================
-   ✅ APP ROUTER
-========================= */
 const App = () => {
   const user = JSON.parse(localStorage.getItem("user"));
 
   const getRedirectPath = () => {
     if (!user) return "/";
-    switch (user.role) {
-      case "admin":
-        return "/admin";
-      case "manager":
-        return "/manager";
-      case "employee":
-        return "/employee";
-      case "intern":
-        return "/intern";
-      default:
-        return "/";
-    }
+    return `/${user.role}`;
   };
 
   return (
     <BrowserRouter>
-      <ToastContainer position="top-center" />
+      {/* 🔔 GLOBAL TOASTS (SINGLE INSTANCE) */}
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="light"
+      />
 
       <Routes>
-        {/* ================= LOGIN ================= */}
+        {/* LOGIN */}
         <Route
           path="/"
           element={
@@ -71,7 +52,7 @@ const App = () => {
           }
         />
 
-        {/* ================= ADMIN ================= */}
+        {/* ADMIN */}
         <Route
           path="/admin"
           element={
@@ -112,16 +93,8 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/user/:id"
-          element={
-            <ProtectedRoute allowedRoles={["admin", "manager"]}>
-              <UserProfile />
-            </ProtectedRoute>
-          }
-        />
 
-        {/* ================= MANAGER ================= */}
+        {/* MANAGER */}
         <Route
           path="/manager"
           element={
@@ -146,12 +119,6 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        {/* ================= MANAGER VIEW USER DASHBOARD
-        /**
- * System designed with scalability, security, and clarity in mind.
- * Maintained by: harshjaiswal.prgm@gmail.com updating and sync by ushaachrya71
- * If you're reading this, you care about clean architecture.
-  ================= */}
         <Route
           path="/manager/view-dashboard/:id"
           element={
@@ -161,7 +128,17 @@ const App = () => {
           }
         />
 
-        {/* ================= EMPLOYEE ================= */}
+        {/* SHARED */}
+        <Route
+          path="/admin/user/:id"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "manager"]}>
+              <UserProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* EMPLOYEE */}
         <Route
           path="/employee"
           element={
@@ -171,7 +148,7 @@ const App = () => {
           }
         />
 
-        {/* ================= INTERN ================= */}
+        {/* INTERN */}
         <Route
           path="/intern"
           element={
@@ -181,7 +158,10 @@ const App = () => {
           }
         />
 
-        {/* ================= FALLBACK ================= */}
+        {/* UNAUTHORIZED */}
+        <Route path="/unauthorized" element={<Unauthorized />} />
+
+        {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

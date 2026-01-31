@@ -157,97 +157,106 @@ const ManagerStipend = () => {
         {interns.length === 0 ? (
           <p className="text-gray-500">No interns assigned to you.</p>
         ) : (
-          <div className="bg-white rounded-xl shadow p-6 overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="p-3 text-left">Intern</th>
-                  <th className="p-3">Gross</th>
-                  <th className="p-3">Incentives</th>
-                  <th className="p-3">Deductions</th>
-                  <th className="p-3">Net Pay</th>
-                  <th className="p-3">Action</th>
-                </tr>
-              </thead>
+         <div className="bg-white rounded-xl shadow p-6 overflow-x-auto max-w-6xl mx-auto">
+  <table className="w-full text-sm border-collapse">
+    <thead className="bg-gray-50">
+      <tr>
+        <th className="p-3 text-left">Intern</th>
+        <th className="p-3 text-center">Gross</th>
+        <th className="p-3 text-center">Incentives</th>
+        <th className="p-3 text-center">Deductions</th>
+        <th className="p-3 text-center">Net Pay</th>
+        <th className="p-3 text-center">Action</th>
+      </tr>
+    </thead>
 
-              <tbody>
-                {interns.map((i) => {
-                  const s = stipends[i._id] || {};
-                  const net = Math.max(
-                    0,
-                    Number(s.baseSalary || 0) +
-                      Number(s.bonus || 0) -
-                      Number(s.deductions || 0)
-                  );
+    <tbody>
+      {interns.map((i) => {
+        const s = stipends[i._id] || {};
+        const net =
+          Number(s.baseSalary || 0) +
+          Number(s.bonus || 0) -
+          Number(s.deductions || 0);
 
-                  return (
-                    <tr key={i._id} className="border-t">
-                      <td className="p-3 font-medium">{i.name}</td>
+        return (
+          <tr key={i._id} className="border-t align-middle">
+            {/* INTERN */}
+            <td className="p-3 font-medium text-left whitespace-nowrap">
+              {i.name}
+            </td>
 
-                      <td className="p-3">
-                        <input
-                          type="number"
-                          min="0"
-                          className="border p-2 rounded w-28"
-                          value={s.baseSalary}
-                          onChange={(e) =>
-                            updateField(i._id, "baseSalary", e.target.value)
-                          }
-                        />
-                      </td>
+            {/* GROSS */}
+            <td className="p-3 text-center">
+              <input
+                type="number"
+                min="0"
+                className="border p-2 rounded w-32 text-center"
+                value={s.baseSalary}
+                onChange={(e) =>
+                  updateField(i._id, "baseSalary", e.target.value)
+                }
+              />
+            </td>
 
-                      <td className="p-3">
-                        <input
-                          type="number"
-                          min="0"
-                          className="border p-2 rounded w-28"
-                          value={s.bonus}
-                          onChange={(e) =>
-                            updateField(i._id, "bonus", e.target.value)
-                          }
-                        />
-                      </td>
+            {/* INCENTIVES */}
+            <td className="p-3 text-center">
+              <input
+                type="number"
+                min="0"
+                className="border p-2 rounded w-32 text-center"
+                value={s.bonus}
+                onChange={(e) =>
+                  updateField(i._id, "bonus", e.target.value)
+                }
+              />
+            </td>
 
-                      <td className="p-3">
-                        <input
-                          type="number"
-                          min="0"
-                          className="border p-2 rounded w-28"
-                          value={s.deductions}
-                          onChange={(e) =>
-                            updateField(i._id, "deductions", e.target.value)
-                          }
-                        />
-                      </td>
+            {/* DEDUCTIONS */}
+            <td className="p-3 text-center">
+              <input
+                type="number"
+                min="0"
+                className="border p-2 rounded w-32 text-center"
+                value={s.deductions}
+                onChange={(e) =>
+                  updateField(i._id, "deductions", e.target.value)
+                }
+              />
+            </td>
 
-                      <td className="p-3 font-semibold">₹ {net}</td>
+            {/* NET PAY */}
+            <td className="p-3 text-center font-semibold font-mono">
+              ₹ {Math.max(0, net)}
+            </td>
 
-                      <td className="p-3">
-                        <button
-                          onClick={() => handleUpdate(i._id)}
-                          disabled={loadingId === i._id}
-                          className="bg-blue-600 hover:bg-blue-700
-                          disabled:opacity-60 text-white px-4 py-2 rounded-lg"
-                        >
-                          {loadingId === i._id ? "Saving…" : "Update"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            <div className="mt-6">
+            {/* ACTION */}
+            <td className="p-3 text-center">
               <button
-                onClick={downloadExcel}
-                className="bg-green-600 hover:bg-green-700
-                text-white px-6 py-2.5 rounded-xl"
+                onClick={() => handleUpdate(i._id)}
+                disabled={loadingId === i._id}
+                className="bg-blue-600 hover:bg-blue-700
+                disabled:opacity-60 text-white px-5 py-2 rounded-lg"
               >
-                Download Salary Excel
+                {loadingId === i._id ? "Saving…" : "Update"}
               </button>
-            </div>
-          </div>
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+
+  <div className="mt-6 flex justify-start">
+    <button
+      onClick={downloadExcel}
+      className="bg-green-600 hover:bg-green-700
+      text-white px-6 py-2.5 rounded-xl"
+    >
+      Download Salary Excel
+    </button>
+  </div>
+</div>
+
         )}
       </div>
     </div>

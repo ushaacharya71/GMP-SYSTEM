@@ -107,73 +107,90 @@ const ManagerRevenue = () => {
         ) : (
           <>
             {/* DESKTOP TABLE */}
-            <div className="hidden lg:block mt-10 bg-white border rounded-2xl shadow-sm overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    <th className="p-4 text-left">Employee</th>
-                    <th className="p-4">Role</th>
-                    <th className="p-4">Date</th>
-                    <th className="p-4">Amount (₹)</th>
-                    <th className="p-4">Description</th>
-                    <th className="p-4 text-right">Action</th>
-                  </tr>
-                </thead>
+           <div className="hidden lg:block mt-10 bg-white border rounded-2xl shadow-sm
+  overflow-x-auto max-w-6xl mx-auto"
+>
+  <table className="w-full text-sm border-collapse">
+    <thead className="bg-gray-50 text-gray-600">
+      <tr>
+        <th className="p-4 text-left">Employee</th>
+        <th className="p-4 text-center">Role</th>
+        <th className="p-4 text-center">Date</th>
+        <th className="p-4 text-center">Amount (₹)</th>
+        <th className="p-4 text-center">Description</th>
+        <th className="p-4 text-center">Action</th>
+      </tr>
+    </thead>
 
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u._id} className="border-t hover:bg-gray-50">
-                      <td className="p-4 font-medium">{u.name}</td>
-                      <td className="p-4 capitalize">{u.role}</td>
+    <tbody>
+      {users.map((u) => (
+        <tr
+          key={u._id}
+          className="border-t hover:bg-gray-50 align-middle"
+        >
+          {/* EMPLOYEE */}
+          <td className="p-4 font-medium text-left whitespace-nowrap">
+            {u.name}
+          </td>
 
-                      <td className="p-4">
-                        <input
-                          type="date"
-                          value={form[u._id]?.date || today}
-                          onChange={(e) =>
-                            handleChange(u._id, "date", e.target.value)
-                          }
-                          className="border rounded-lg px-3 py-1.5"
-                        />
-                      </td>
+          {/* ROLE */}
+          <td className="p-4 text-center capitalize">
+            {u.role}
+          </td>
 
-                      <td className="p-4">
-                        <input
-                          type="number"
-                          value={form[u._id]?.amount || ""}
-                          onChange={(e) =>
-                            handleChange(u._id, "amount", e.target.value)
-                          }
-                          className="border rounded-lg px-3 py-1.5 w-32"
-                        />
-                      </td>
+          {/* DATE */}
+          <td className="p-4 text-center">
+            <input
+              type="date"
+              value={form[u._id]?.date || today}
+              onChange={(e) =>
+                handleChange(u._id, "date", e.target.value)
+              }
+              className="border rounded-lg px-3 py-2 text-center w-40"
+            />
+          </td>
 
-                      <td className="p-4">
-                        <input
-                          type="text"
-                          value={form[u._id]?.description || ""}
-                          onChange={(e) =>
-                            handleChange(u._id, "description", e.target.value)
-                          }
-                          className="border rounded-lg px-3 py-1.5 w-56"
-                        />
-                      </td>
+          {/* AMOUNT */}
+          <td className="p-4 text-center">
+            <input
+              type="number"
+              value={form[u._id]?.amount || ""}
+              onChange={(e) =>
+                handleChange(u._id, "amount", e.target.value)
+              }
+              className="border rounded-lg px-3 py-2 text-center w-32"
+            />
+          </td>
 
-                      <td className="p-4 text-right">
-                        <button
-                          onClick={() => handleSubmit(u._id)}
-                          disabled={loadingUserId === u._id}
-                          className="bg-orange-600 hover:bg-orange-700
-                            text-white px-4 py-2 rounded-xl"
-                        >
-                          {loadingUserId === u._id ? "Saving…" : "Add"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {/* DESCRIPTION */}
+          <td className="p-4 text-center">
+            <input
+              type="text"
+              value={form[u._id]?.description || ""}
+              onChange={(e) =>
+                handleChange(u._id, "description", e.target.value)
+              }
+              className="border rounded-lg px-3 py-2 w-64"
+            />
+          </td>
+
+          {/* ACTION */}
+          <td className="p-4 text-center">
+            <button
+              onClick={() => handleSubmit(u._id)}
+              disabled={loadingUserId === u._id}
+              className="bg-orange-600 hover:bg-orange-700
+                text-white px-5 py-2 rounded-xl"
+            >
+              {loadingUserId === u._id ? "Saving…" : "Add"}
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
 
             {/* MOBILE CARDS */}
             <div className="lg:hidden mt-10 space-y-4">

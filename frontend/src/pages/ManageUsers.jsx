@@ -4,6 +4,7 @@ import UserTable from "../components/UserTable";
 import UserModal from "../components/UserModal";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -32,7 +33,7 @@ const ManageUsers = () => {
       setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching users:", err);
-      alert("Failed to fetch users");
+      toast.error("Failed to fetch users");
       setUsers([]);
     } finally {
       setLoading(false);
@@ -70,7 +71,7 @@ const ManageUsers = () => {
       fetchUsers();
     } catch (err) {
       console.error("Error deleting user:", err);
-      alert("Failed to delete user");
+      toast.error("Failed to delete user");
     } finally {
       setSaving(false);
     }
@@ -91,7 +92,9 @@ const ManageUsers = () => {
       fetchUsers();
     } catch (err) {
       console.error("Error saving user:", err);
-      alert(err.response?.data?.message || "Failed to save user");
+      toast.error(
+        err.response?.data?.message || "Failed to save user"
+      );
     } finally {
       setSaving(false);
     }

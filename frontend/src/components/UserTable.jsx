@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const UserTable = ({ users = [], onEdit, onDelete }) => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const UserTable = ({ users = [], onEdit, onDelete }) => {
   -------------------------------- */
   const handleView = (user) => {
     if (!loggedInUser) {
-      alert("Session expired. Please login again.");
+      toast.error("Session expired. Please login again.");
       return;
     }
 
@@ -47,7 +48,7 @@ const UserTable = ({ users = [], onEdit, onDelete }) => {
       }
     }
 
-    alert("You are not allowed to view this profile");
+    toast.error("You are not allowed to view this profile");
   };
 
   if (safeUsers.length === 0) {
@@ -90,7 +91,9 @@ const UserTable = ({ users = [], onEdit, onDelete }) => {
             </td>
 
             <td className="p-3 border capitalize">
-              {user.role === "employee" ? "Probation" : user.role || "—"}
+              {user.role === "employee"
+                ? "Probation"
+                : user.role || "—"}
             </td>
 
             <td className="p-3 border">

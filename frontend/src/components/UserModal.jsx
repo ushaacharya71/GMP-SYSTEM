@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 
 const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
   const [formData, setFormData] = useState({
@@ -67,7 +68,7 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
     };
 
     if (!cleaned.name || !cleaned.email || !cleaned.role) {
-      alert("Name, Email & Role are required");
+      toast.error("Name, Email & Role are required");
       return;
     }
 
@@ -76,7 +77,7 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
       ["intern", "employee"].includes(cleaned.role) &&
       !cleaned.manager
     ) {
-      alert("Please assign a manager");
+      toast.error("Please assign a manager");
       return;
     }
 
