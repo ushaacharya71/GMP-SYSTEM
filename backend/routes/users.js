@@ -304,6 +304,343 @@
 //   }
 // });
 
+// // export default router;
+
+// import express from "express";
+// import mongoose from "mongoose";
+// import User from "../models/User.js";
+// import Revenue from "../models/Revenue.js";
+// import { protect } from "../middleware/auth.js";
+// import { authorizeRoles } from "../middleware/role.js";
+
+// const router = express.Router();
+
+// /* ===============================
+//    GET ALL USERS (ADMIN ONLY)
+// ================================ */
+// router.get("/", protect, authorizeRoles("admin"), async (req, res) => {
+//   try {
+//     const users = await User.find()
+//       .select("-password")
+//       .populate("manager", "name email role");
+
+//     res.json(users);
+//   } catch (err) {
+//     console.error("Fetch users error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
+// /* ===============================
+//    CREATE USER (ADMIN / MANAGER)
+// ================================ */
+// router.post(
+//   "/",
+//   protect,
+//   authorizeRoles("admin", "manager"),
+//   async (req, res) => {
+//     try {
+//       const loggedInUser = req.user;
+
+//       const {
+//         name,
+//         email,
+//         phone,
+//         role,
+//         manager,
+//         position,
+//         teamName,
+//         joiningDate,
+//         password,
+//         birthday,
+//       } = req.body;
+
+//       if (!name || !email || !role) {
+//         return res.status(400).json({ message: "Required fields missing" });
+//       }
+
+//       const exists = await User.findOne({ email: email.toLowerCase() });
+//       if (exists) {
+//         return res.status(400).json({ message: "User already exists" });
+//       }
+
+//       /* ================= ADMIN FLOW ================= */
+//       if (loggedInUser.role === "admin") {
+//         if (["intern", "employee"].includes(role) && !manager) {
+//           return res
+//             .status(400)
+//             .json({ message: "Intern/Employee must have a manager" });
+//         }
+
+//         const newUser = new User({
+//           name,
+//           email: email.toLowerCase(),
+//           phone,
+//           role,
+//           manager: ["intern", "employee"].includes(role) ? manager : null,
+//           position: role === "employee" ? position : "",
+//           teamName,
+//           joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
+//           birthday: birthday ? new Date(birthday) : null,
+//           password: password || "Glow@123",
+//         });
+
+//         await newUser.save();
+
+//         if (["intern", "employee"].includes(role)) {
+//           await User.findByIdAndUpdate(manager, {
+//             $addToSet: { managedInterns: newUser._id },
+//           });
+//         }
+
+//         const safe = newUser.toObject();
+//         delete safe.password;
+
+//         return res.status(201).json({ success: true, user: safe });
+//       }
+
+//       /* ================= MANAGER FLOW ================= */
+//       if (loggedInUser.role === "manager") {
+//         if (!["intern", "employee"].includes(role)) {
+//           return res.status(403).json({
+//             message: "Managers can only add interns or employees",
+//           });
+//         }
+
+//         const newUser = new User({
+//           name,
+//           email: email.toLowerCase(),
+//           phone,
+//           role,
+//           manager: loggedInUser._id, // 🔒 AUTO ASSIGN
+//           position: role === "employee" ? position : "",
+//           teamName,
+//           joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
+//           birthday: birthday ? new Date(birthday) : null,
+//           password: password || "Glow@123",
+//         });
+
+//         await newUser.save();
+
+//         await User.findByIdAndUpdate(loggedInUser._id, {
+//           $addToSet: { managedInterns: newUser._id },
+//         });
+
+//         const safe = newUser.toObject();
+//         delete safe.password;
+
+//         return res.status(201).json({ success: true, user: safe });
+//       }
+
+//       return res.status(403).json({ message: "Unauthorized" });
+//     } catch (err) {
+//       console.error("Create user error:", err);
+//       res.status(500).json({ message: "Server error" });
+//     }
+//   }
+// );
+
+// /* ===============================
+//    ASSIGN / CHANGE MANAGER
+// ================================ */
+// router.post(
+//   "/assign",
+//   protect,
+//   authorizeRoles("admin"),
+//   async (req, res) => {
+//     try {
+//       const { internId, managerId } = req.body;
+
+//       const user = await User.findById(internId);
+//       const manager = await User.findById(managerId);
+
+//       if (!user || !manager) {
+//         return res.status(404).json({ message: "User not found" });
+//       }
+
+//       if (manager.role !== "manager") {
+//         return res.status(400).json({ message: "Invalid manager" });
+//       }
+
+//       if (!["intern", "employee"].includes(user.role)) {
+//         return res
+//           .status(400)
+//           .json({ message: "Only intern/employee can be assigned" });
+//       }
+
+//       if (user.manager) {
+//         await User.findByIdAndUpdate(user.manager, {
+//           $pull: { managedInterns: user._id },
+//         });
+//       }
+
+//       user.manager = managerId;
+//       await user.save();
+
+//       await User.findByIdAndUpdate(managerId, {
+//         $addToSet: { managedInterns: user._id },
+//       });
+
+//       res.json({ success: true });
+//     } catch (err) {
+//       console.error("Assign error:", err);
+//       res.status(500).json({ message: "Server error" });
+//     }
+//   }
+// );
+
+// /* ===============================
+//    MANAGER → GET OWN INTERNS
+// ================================ */
+// router.get(
+//   "/manager/interns",
+//   protect,
+//   authorizeRoles("manager"),
+//   async (req, res) => {
+//     try {
+//       const users = await User.find({ manager: req.user._id }).select(
+//         "name email role teamName joiningDate"
+//       );
+//       res.json(users);
+//     } catch (err) {
+//       res.status(500).json({ message: "Server error" });
+//     }
+//   }
+// );
+
+// /* ===============================
+//    GET USER PROFILE
+// ================================ */
+// router.get("/:id", protect, async (req, res) => {
+//   try {
+//     const targetUser = await User.findById(req.params.id);
+
+//     if (!targetUser) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     if (req.user.role === "admin") return res.json(targetUser);
+
+//     if (req.user._id.toString() === targetUser._id.toString()) {
+//       return res.json(targetUser);
+//     }
+
+//     if (
+//       req.user.role === "manager" &&
+//       targetUser.manager?.toString() === req.user._id.toString()
+//     ) {
+//       return res.json(targetUser);
+//     }
+
+//     return res.status(403).json({ message: "Unauthorized" });
+//   } catch (error) {
+//     console.error("User fetch error:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
+// /* ===============================
+//    UPDATE USER
+// ================================ */
+// router.put("/:id", protect, async (req, res) => {
+//   try {
+//     if (
+//       req.user.role !== "admin" &&
+//       req.user._id.toString() !== req.params.id
+//     ) {
+//       return res.status(403).json({ message: "Unauthorized" });
+//     }
+
+//     const updates = { ...req.body };
+
+//     if (
+//       ["intern", "employee"].includes(updates.role) &&
+//       !updates.manager
+//     ) {
+//       return res
+//         .status(400)
+//         .json({ message: "Manager required for intern/employee" });
+//     }
+
+//     const updated = await User.findByIdAndUpdate(req.params.id, updates, {
+//       new: true,
+//     })
+//       .select("-password")
+//       .populate("manager", "name email role");
+
+//     res.json({ success: true, user: updated });
+//   } catch (err) {
+//     console.error("Update error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
+// /* ===============================
+//    DELETE USER (ADMIN ONLY)
+// ================================ */
+// router.delete(
+//   "/:id",
+//   protect,
+//   authorizeRoles("admin"),
+//   async (req, res) => {
+//     try {
+//       const user = await User.findByIdAndDelete(req.params.id);
+//       if (!user) return res.status(404).json({ message: "User not found" });
+
+//       if (user.manager) {
+//         await User.findByIdAndUpdate(user.manager, {
+//           $pull: { managedInterns: user._id },
+//         });
+//       }
+
+//       res.json({ success: true });
+//     } catch (err) {
+//       res.status(500).json({ message: "Server error" });
+//     }
+//   }
+// );
+
+// /* ===============================
+//    PERFORMANCE (DAY-WISE)
+// ================================ */
+// router.get("/:id/performance", protect, async (req, res) => {
+//   try {
+//     const user = await User.findById(req.params.id);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     if (
+//       req.user.role !== "admin" &&
+//       req.user._id.toString() !== req.params.id &&
+//       !(req.user.role === "manager" &&
+//         user.manager?.toString() === req.user._id.toString())
+//     ) {
+//       return res.status(403).json({ message: "Unauthorized" });
+//     }
+
+//     const data = await Revenue.aggregate([
+//       { $match: { user: new mongoose.Types.ObjectId(req.params.id) } },
+//       {
+//         $group: {
+//           _id: {
+//             $dateToString: { format: "%Y-%m-%d", date: "$date" },
+//           },
+//           amount: { $sum: "$amount" },
+//         },
+//       },
+//       { $sort: { _id: 1 } },
+//     ]);
+
+//     res.json(
+//       data.map((d) => ({
+//         date: d._id,
+//         amount: d.amount,
+//       }))
+//     );
+//   } catch (err) {
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
 // export default router;
 
 import express from "express";
@@ -315,9 +652,9 @@ import { authorizeRoles } from "../middleware/role.js";
 
 const router = express.Router();
 
-/* ===============================
-   GET ALL USERS (ADMIN ONLY)
-================================ */
+/* =====================================================
+   ADMIN → GET ALL USERS
+===================================================== */
 router.get("/", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const users = await User.find()
@@ -331,9 +668,11 @@ router.get("/", protect, authorizeRoles("admin"), async (req, res) => {
   }
 });
 
-/* ===============================
-   CREATE USER (ADMIN / MANAGER)
-================================ */
+/* =====================================================
+   CREATE USER
+   Admin → any
+   Manager → intern / employee (auto-assign)
+===================================================== */
 router.post(
   "/",
   protect,
@@ -341,7 +680,6 @@ router.post(
   async (req, res) => {
     try {
       const loggedInUser = req.user;
-
       const {
         name,
         email,
@@ -364,7 +702,7 @@ router.post(
         return res.status(400).json({ message: "User already exists" });
       }
 
-      /* ================= ADMIN FLOW ================= */
+      /* ========== ADMIN FLOW ========== */
       if (loggedInUser.role === "admin") {
         if (["intern", "employee"].includes(role) && !manager) {
           return res
@@ -372,7 +710,7 @@ router.post(
             .json({ message: "Intern/Employee must have a manager" });
         }
 
-        const newUser = new User({
+        const newUser = await User.create({
           name,
           email: email.toLowerCase(),
           phone,
@@ -384,8 +722,6 @@ router.post(
           birthday: birthday ? new Date(birthday) : null,
           password: password || "Glow@123",
         });
-
-        await newUser.save();
 
         if (["intern", "employee"].includes(role)) {
           await User.findByIdAndUpdate(manager, {
@@ -399,7 +735,7 @@ router.post(
         return res.status(201).json({ success: true, user: safe });
       }
 
-      /* ================= MANAGER FLOW ================= */
+      /* ========== MANAGER FLOW ========== */
       if (loggedInUser.role === "manager") {
         if (!["intern", "employee"].includes(role)) {
           return res.status(403).json({
@@ -407,20 +743,18 @@ router.post(
           });
         }
 
-        const newUser = new User({
+        const newUser = await User.create({
           name,
           email: email.toLowerCase(),
           phone,
           role,
-          manager: loggedInUser._id, // 🔒 AUTO ASSIGN
+          manager: loggedInUser._id, // 🔒 auto assign
           position: role === "employee" ? position : "",
           teamName,
           joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
           birthday: birthday ? new Date(birthday) : null,
           password: password || "Glow@123",
         });
-
-        await newUser.save();
 
         await User.findByIdAndUpdate(loggedInUser._id, {
           $addToSet: { managedInterns: newUser._id },
@@ -440,91 +774,46 @@ router.post(
   }
 );
 
-/* ===============================
-   ASSIGN / CHANGE MANAGER
-================================ */
-router.post(
-  "/assign",
-  protect,
-  authorizeRoles("admin"),
-  async (req, res) => {
-    try {
-      const { internId, managerId } = req.body;
-
-      const user = await User.findById(internId);
-      const manager = await User.findById(managerId);
-
-      if (!user || !manager) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      if (manager.role !== "manager") {
-        return res.status(400).json({ message: "Invalid manager" });
-      }
-
-      if (!["intern", "employee"].includes(user.role)) {
-        return res
-          .status(400)
-          .json({ message: "Only intern/employee can be assigned" });
-      }
-
-      if (user.manager) {
-        await User.findByIdAndUpdate(user.manager, {
-          $pull: { managedInterns: user._id },
-        });
-      }
-
-      user.manager = managerId;
-      await user.save();
-
-      await User.findByIdAndUpdate(managerId, {
-        $addToSet: { managedInterns: user._id },
-      });
-
-      res.json({ success: true });
-    } catch (err) {
-      console.error("Assign error:", err);
-      res.status(500).json({ message: "Server error" });
-    }
-  }
-);
-
-/* ===============================
-   MANAGER → GET OWN INTERNS
-================================ */
+/* =====================================================
+   MANAGER → GET OWN TEAM
+===================================================== */
 router.get(
   "/manager/interns",
   protect,
   authorizeRoles("manager"),
   async (req, res) => {
     try {
-      const users = await User.find({ manager: req.user._id }).select(
-        "name email role teamName joiningDate"
-      );
+      const users = await User.find({ manager: req.user._id })
+        .select("name email role teamName joiningDate");
+
       res.json(users);
     } catch (err) {
+      console.error("Manager interns error:", err);
       res.status(500).json({ message: "Server error" });
     }
   }
 );
 
-/* ===============================
+/* =====================================================
    GET USER PROFILE
-================================ */
+===================================================== */
 router.get("/:id", protect, async (req, res) => {
   try {
-    const targetUser = await User.findById(req.params.id);
+    const targetUser = await User.findById(req.params.id).select("-password");
 
     if (!targetUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Admin → anyone
     if (req.user.role === "admin") return res.json(targetUser);
 
+    // Self
     if (req.user._id.toString() === targetUser._id.toString()) {
       return res.json(targetUser);
     }
 
+    // Manager → own team
     if (
       req.user.role === "manager" &&
       targetUser.manager?.toString() === req.user._id.toString()
@@ -539,9 +828,11 @@ router.get("/:id", protect, async (req, res) => {
   }
 });
 
-/* ===============================
+/* =====================================================
    UPDATE USER
-================================ */
+   Admin → anyone
+   User → self only
+===================================================== */
 router.put("/:id", protect, async (req, res) => {
   try {
     if (
@@ -551,22 +842,11 @@ router.put("/:id", protect, async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const updates = { ...req.body };
-
-    if (
-      ["intern", "employee"].includes(updates.role) &&
-      !updates.manager
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Manager required for intern/employee" });
-    }
-
-    const updated = await User.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
-    })
-      .select("-password")
-      .populate("manager", "name email role");
+    const updated = await User.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    ).select("-password");
 
     res.json({ success: true, user: updated });
   } catch (err) {
@@ -575,9 +855,9 @@ router.put("/:id", protect, async (req, res) => {
   }
 });
 
-/* ===============================
+/* =====================================================
    DELETE USER (ADMIN ONLY)
-================================ */
+===================================================== */
 router.delete(
   "/:id",
   protect,
@@ -595,25 +875,29 @@ router.delete(
 
       res.json({ success: true });
     } catch (err) {
+      console.error("Delete error:", err);
       res.status(500).json({ message: "Server error" });
     }
   }
 );
 
-/* ===============================
-   PERFORMANCE (DAY-WISE)
-================================ */
+/* =====================================================
+   USER PERFORMANCE (ADMIN / MANAGER / SELF)
+===================================================== */
 router.get("/:id/performance", protect, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    if (
-      req.user.role !== "admin" &&
-      req.user._id.toString() !== req.params.id &&
-      !(req.user.role === "manager" &&
-        user.manager?.toString() === req.user._id.toString())
-    ) {
+    const isAllowed =
+      req.user.role === "admin" ||
+      req.user._id.toString() === targetUser._id.toString() ||
+      (req.user.role === "manager" &&
+        targetUser.manager?.toString() === req.user._id.toString());
+
+    if (!isAllowed) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
@@ -637,6 +921,7 @@ router.get("/:id/performance", protect, async (req, res) => {
       }))
     );
   } catch (err) {
+    console.error("Performance error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

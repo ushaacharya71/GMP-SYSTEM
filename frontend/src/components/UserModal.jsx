@@ -1,8 +1,21 @@
+
+
 // import React, { useState, useEffect, useMemo } from "react";
 // import { motion } from "framer-motion";
 // import { toast } from "react-toastify";
 
 // const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
+//   const loggedInUser = useMemo(() => {
+//     try {
+//       return JSON.parse(localStorage.getItem("user"));
+//     } catch {
+//       return null;
+//     }
+//   }, []);
+
+//   const isAdmin = loggedInUser?.role === "admin";
+//   const isManager = loggedInUser?.role === "manager";
+
 //   const [formData, setFormData] = useState({
 //     name: "",
 //     email: "",
@@ -16,15 +29,13 @@
 //     password: "",
 //   });
 
-//   // ✅ Always array-safe + memoized
+//   /* ================= MANAGER LIST (ADMIN ONLY) ================= */
 //   const managers = useMemo(() => {
 //     if (!Array.isArray(allUsers)) return [];
 //     return allUsers.filter((u) => u?.role === "manager");
 //   }, [allUsers]);
 
-//   /* ----------------------------------
-//      LOAD USER DATA (EDIT MODE)
-//   ---------------------------------- */
+//   /* ================= LOAD USER (EDIT) ================= */
 //   useEffect(() => {
 //     if (!user) return;
 
@@ -44,17 +55,13 @@
 //     });
 //   }, [user]);
 
-//   /* ----------------------------------
-//      INPUT HANDLER
-//   ---------------------------------- */
+//   /* ================= INPUT ================= */
 //   const handleChange = (e) => {
 //     const { name, value } = e.target;
-//     setFormData((prev) => ({ ...prev, [name]: value }));
+//     setFormData((p) => ({ ...p, [name]: value }));
 //   };
 
-//   /* ----------------------------------
-//      SUBMIT HANDLER (VALIDATION)
-//   ---------------------------------- */
+//   /* ================= SUBMIT ================= */
 //   const handleSubmit = (e) => {
 //     e.preventDefault();
 
@@ -72,12 +79,16 @@
 //       return;
 //     }
 
-//     // Intern & Employee MUST have manager
+//     // 🔐 Manager auto-assign
+//     if (isManager) {
+//       cleaned.manager = loggedInUser._id;
+//     }
+
 //     if (
 //       ["intern", "employee"].includes(cleaned.role) &&
 //       !cleaned.manager
 //     ) {
-//       toast.error("Please assign a manager");
+//       toast.error("Manager assignment missing");
 //       return;
 //     }
 
@@ -138,28 +149,29 @@
 //             onChange={handleChange}
 //             className="w-full border rounded p-2"
 //           >
-//             <option value="admin">Admin</option>
-//             <option value="manager">Manager</option>
+//             {isAdmin && <option value="admin">Admin</option>}
+//             {isAdmin && <option value="manager">Manager</option>}
 //             <option value="employee">Probation Employee</option>
 //             <option value="intern">Intern</option>
 //           </select>
 
-//           {/* MANAGER (INTERN / EMPLOYEE) */}
-//           {["intern", "employee"].includes(formData.role) && (
-//             <select
-//               name="manager"
-//               value={formData.manager}
-//               onChange={handleChange}
-//               className="w-full border rounded p-2"
-//             >
-//               <option value="">Select Manager</option>
-//               {managers.map((m) => (
-//                 <option key={m._id} value={m._id}>
-//                   {m.name}
-//                 </option>
-//               ))}
-//             </select>
-//           )}
+//           {/* MANAGER SELECT (ADMIN ONLY) */}
+//           {isAdmin &&
+//             ["intern", "employee"].includes(formData.role) && (
+//               <select
+//                 name="manager"
+//                 value={formData.manager}
+//                 onChange={handleChange}
+//                 className="w-full border rounded p-2"
+//               >
+//                 <option value="">Select Manager</option>
+//                 {managers.map((m) => (
+//                   <option key={m._id} value={m._id}>
+//                     {m.name}
+//                   </option>
+//                 ))}
+//               </select>
+//             )}
 
 //           {/* INTERN */}
 //           {formData.role === "intern" && (
@@ -186,7 +198,7 @@
 //           )}
 
 //           {/* MANAGER */}
-//           {formData.role === "manager" && (
+//           {isAdmin && formData.role === "manager" && (
 //             <input
 //               type="text"
 //               name="teamName"
@@ -217,7 +229,7 @@
 //             className="w-full border rounded p-2"
 //           />
 
-//           {/* PASSWORD (ONLY CREATE) */}
+//           {/* PASSWORD (CREATE ONLY) */}
 //           {!isEdit && (
 //             <input
 //               type="password"
@@ -268,6 +280,7 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
   }, []);
 
   const isAdmin = loggedInUser?.role === "admin";
+  const isHR = loggedInUser?.role === "hr";
   const isManager = loggedInUser?.role === "manager";
 
   const [formData, setFormData] = useState({
@@ -283,7 +296,7 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
     password: "",
   });
 
-  /* ================= MANAGER LIST (ADMIN ONLY) ================= */
+  /* ================= MANAGERS LIST ================= */
   const managers = useMemo(() => {
     if (!Array.isArray(allUsers)) return [];
     return allUsers.filter((u) => u?.role === "manager");
@@ -404,13 +417,14 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
             className="w-full border rounded p-2"
           >
             {isAdmin && <option value="admin">Admin</option>}
-            {isAdmin && <option value="manager">Manager</option>}
+            {(isAdmin || isHR) && <option value="hr">HR</option>}
+            {(isAdmin || isHR) && <option value="manager">Manager</option>}
             <option value="employee">Probation Employee</option>
             <option value="intern">Intern</option>
           </select>
 
-          {/* MANAGER SELECT (ADMIN ONLY) */}
-          {isAdmin &&
+          {/* MANAGER SELECT (ADMIN / HR ONLY) */}
+          {(isAdmin || isHR) &&
             ["intern", "employee"].includes(formData.role) && (
               <select
                 name="manager"
@@ -452,7 +466,7 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
           )}
 
           {/* MANAGER */}
-          {isAdmin && formData.role === "manager" && (
+          {(isAdmin || isHR) && formData.role === "manager" && (
             <input
               type="text"
               name="teamName"
