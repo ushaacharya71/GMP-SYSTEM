@@ -758,7 +758,7 @@ router.get("/manager-revenue", protect, async (req, res) => {
 ===================================================== */
 router.get("/top", protect, async (req, res) => {
   try {
-    if (!["admin", "manager", "hr"].includes(req.user.role)) {
+    if (!["admin", "manager", "hr", "intern", "employee"].includes(req.user.role)) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 

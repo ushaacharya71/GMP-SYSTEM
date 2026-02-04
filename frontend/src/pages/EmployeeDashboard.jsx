@@ -109,16 +109,33 @@ const EmployeeDashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <img
-                src={user.avatar || "/avatar.png"}
-                alt="avatar"
-                className="w-12 h-12 rounded-full border-4 border-white/40 shadow-xl"
-              />
-              <div className="text-sm">
-                <p className="font-semibold">{user.email}</p>
-                <p className="text-white/80 capitalize">{user.role}</p>
-              </div>
-            </div>
+  {/* Avatar with glow */}
+  <div className="relative group">
+    {/* Glow */}
+    <div
+      className="absolute -inset-1 rounded-full bg-gradient-to-tr
+      from-orange-500 to-pink-500 blur opacity-40"
+    />
+
+    {/* Image */}
+    <img
+      src={
+        user.avatar ||
+        "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
+      }
+      alt="User Avatar"
+      className="relative w-10 h-10 rounded-full object-cover
+        ring-2 ring-white/60 shadow-xl"
+    />
+  </div>
+
+  {/* User info */}
+  <div className="text-sm">
+    <p className="font-semibold">{user.email}</p>
+    <p className="text-white/80 capitalize">{user.role}</p>
+  </div>
+</div>
+
           </div>
         </section>
 
