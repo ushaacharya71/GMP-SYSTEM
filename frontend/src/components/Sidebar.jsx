@@ -179,14 +179,14 @@ const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
           path: "/admin/manage-users",
           icon: <UserPlus size={20} />,
         },
-        { name: "Employees", path: "/admin/employees", icon: <Users size={20} /> },
-        { name: "Interns", path: "/admin/interns", icon: <Users size={20} /> },
-        { name: "Revenue", path: "/admin/revenue", icon: <BarChart3 size={20} /> },
-        {
-          name: "Announcements",
-          path: "/admin/announcements",
-          icon: <Megaphone size={20} />,
-        },
+        // { name: "Employees", path: "/admin/employees", icon: <Users size={20} /> },
+        // { name: "Interns", path: "/admin/interns", icon: <Users size={20} /> },
+        // { name: "Revenue", path: "/admin/revenue", icon: <BarChart3 size={20} /> },
+        // {
+        //   name: "Announcements",
+        //   path: "/admin/announcements",
+        //   icon: <Megaphone size={20} />,
+        // },
       ];
     }
 
@@ -199,13 +199,13 @@ const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
           path: "/manager/manage-users",
           icon: <UserPlus size={20} />,
         },
-        { name: "Interns", path: "/manager/interns", icon: <Users size={20} /> },
-        { name: "Revenue", path: "/manager/revenue", icon: <BarChart3 size={20} /> },
-        {
-          name: "Announcements",
-          path: "/manager/announcements",
-          icon: <Megaphone size={20} />,
-        },
+        // { name: "Interns", path: "/manager/interns", icon: <Users size={20} /> },
+        // { name: "Revenue", path: "/manager/revenue", icon: <BarChart3 size={20} /> },
+        // {
+        //   name: "Announcements",
+        //   path: "/manager/announcements",
+        //   icon: <Megaphone size={20} />,
+        // },
       ];
     }
 

@@ -15,21 +15,28 @@
 //   const [loading, setLoading] = useState(true);
 //   const [saving, setSaving] = useState(false);
 
-//   /* ================= ADMIN GUARD ================= */
+//   const storedUser = JSON.parse(localStorage.getItem("user"));
+
+//   /* ================= ROLE GUARD ================= */
 //   useEffect(() => {
-//     const stored = JSON.parse(localStorage.getItem("user"));
-//     if (!stored || stored.role !== "admin") {
-//       window.location.href = "/";
+//     if (!storedUser || !["admin", "manager"].includes(storedUser.role)) {
+//       window.location.href = "/unauthorized";
 //       return;
 //     }
 //     fetchUsers();
+//     // eslint-disable-next-line
 //   }, []);
 
 //   /* ================= FETCH USERS ================= */
 //   const fetchUsers = async () => {
 //     try {
 //       setLoading(true);
-//       const res = await api.get("/users");
+
+//       const res =
+//         storedUser.role === "manager"
+//           ? await api.get("/users/manager/interns")
+//           : await api.get("/users");
+
 //       setUsers(Array.isArray(res.data) ? res.data : []);
 //     } catch (err) {
 //       console.error("Error fetching users:", err);
@@ -66,6 +73,7 @@
 //     try {
 //       setSaving(true);
 //       await api.delete(`/users/${selectedUser._id}`);
+//       toast.success("User deleted");
 //       setShowDelete(false);
 //       setSelectedUser(null);
 //       fetchUsers();
@@ -78,27 +86,39 @@
 //   };
 
 //   const handleSave = async (data) => {
-//     if (!data) return;
+//   if (!data) return;
 
-//     try {
-//       setSaving(true);
-//       if (isEdit && selectedUser?._id) {
-//         await api.put(`/users/${selectedUser._id}`, data);
-//       } else {
-//         await api.post("/users", data);
-//       }
-//       setShowModal(false);
-//       setSelectedUser(null);
-//       fetchUsers();
-//     } catch (err) {
-//       console.error("Error saving user:", err);
-//       toast.error(
-//         err.response?.data?.message || "Failed to save user"
-//       );
-//     } finally {
-//       setSaving(false);
+//   try {
+//     setSaving(true);
+
+//     const payload = { ...data };
+
+//     // 🔒 MANAGER RULE: never send manager field
+//     if (storedUser.role === "manager") {
+//       delete payload.manager;
 //     }
-//   };
+
+//     if (isEdit && selectedUser?._id) {
+//       await api.put(`/users/${selectedUser._id}`, payload);
+//       toast.success("User updated");
+//     } else {
+//       await api.post("/users", payload);
+//       toast.success("User created");
+//     }
+
+//     setShowModal(false);
+//     setSelectedUser(null);
+//     fetchUsers();
+//   } catch (err) {
+//     console.error("Error saving user:", err);
+//     toast.error(
+//       err.response?.data?.message || "Failed to save user"
+//     );
+//   } finally {
+//     setSaving(false);
+//   }
+// };
+
 
 //   /* ================= UI ================= */
 //   return (
@@ -113,10 +133,12 @@
 //         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
 //           <div>
 //             <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-//               👥 Manage Users
+//               👥 {storedUser.role === "manager" ? "My Team" : "Manage Users"}
 //             </h2>
 //             <p className="text-xs sm:text-sm text-gray-500 mt-1">
-//               Create, edit, assign roles & manage team structure
+//               {storedUser.role === "manager"
+//                 ? "Add and manage your team members"
+//                 : "Create, edit, assign roles & manage team structure"}
 //             </p>
 //           </div>
 
@@ -132,7 +154,7 @@
 //               transition-all
 //             "
 //           >
-//             + Add New User
+//             + Add User
 //           </button>
 //         </div>
 
@@ -150,8 +172,8 @@
 //             <div className="min-w-[700px] sm:min-w-full px-4 sm:px-0">
 //               <UserTable
 //                 users={users}
-//                 onEdit={handleEdit}
-//                 onDelete={handleDelete}
+//                 onEdit={storedUser.role === "admin" ? handleEdit : null}
+//                 onDelete={storedUser.role === "admin" ? handleDelete : null}
 //               />
 //             </div>
 //           </div>
@@ -191,6 +213,8 @@ import UserModal from "../components/UserModal";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
+import { Eye, EyeOff } from "lucide-react";
+
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -200,6 +224,12 @@ const ManageUsers = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+
+  /* 🔑 RESET PASSWORD STATES (NEW) */
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   const storedUser = JSON.parse(localStorage.getItem("user"));
 
@@ -253,6 +283,39 @@ const ManageUsers = () => {
     setShowDelete(true);
   };
 
+  /* 🔑 RESET PASSWORD HANDLER (NEW) */
+  const handleResetPassword = (user) => {
+    setSelectedUser(user);
+    setNewPassword("");
+    setShowResetPassword(true);
+  };
+
+  const submitResetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await api.post(
+        `/users/${selectedUser._id}/reset-password`,
+        { password: newPassword }
+      );
+
+      toast.success("Password updated successfully");
+      setShowResetPassword(false);
+      setSelectedUser(null);
+      setNewPassword("");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Failed to reset password"
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!selectedUser?._id) return;
 
@@ -272,39 +335,35 @@ const ManageUsers = () => {
   };
 
   const handleSave = async (data) => {
-  if (!data) return;
+    if (!data) return;
 
-  try {
-    setSaving(true);
+    try {
+      setSaving(true);
 
-    const payload = { ...data };
+      const payload = { ...data };
 
-    // 🔒 MANAGER RULE: never send manager field
-    if (storedUser.role === "manager") {
-      delete payload.manager;
+      if (storedUser.role === "manager") {
+        delete payload.manager;
+      }
+
+      if (isEdit && selectedUser?._id) {
+        await api.put(`/users/${selectedUser._id}`, payload);
+        toast.success("User updated");
+      } else {
+        await api.post("/users", payload);
+        toast.success("User created");
+      }
+
+      setShowModal(false);
+      setSelectedUser(null);
+      fetchUsers();
+    } catch (err) {
+      console.error("Error saving user:", err);
+      toast.error(err.response?.data?.message || "Failed to save user");
+    } finally {
+      setSaving(false);
     }
-
-    if (isEdit && selectedUser?._id) {
-      await api.put(`/users/${selectedUser._id}`, payload);
-      toast.success("User updated");
-    } else {
-      await api.post("/users", payload);
-      toast.success("User created");
-    }
-
-    setShowModal(false);
-    setSelectedUser(null);
-    fetchUsers();
-  } catch (err) {
-    console.error("Error saving user:", err);
-    toast.error(
-      err.response?.data?.message || "Failed to save user"
-    );
-  } finally {
-    setSaving(false);
-  }
-};
-
+  };
 
   /* ================= UI ================= */
   return (
@@ -331,38 +390,29 @@ const ManageUsers = () => {
           <button
             onClick={handleAdd}
             disabled={saving}
-            className="
-              w-full sm:w-auto
-              bg-gradient-to-r from-orange-500 to-orange-600
+            className="bg-gradient-to-r from-orange-500 to-orange-600
               text-white px-5 py-2.5 rounded-xl font-semibold
               hover:shadow-lg hover:scale-[1.02]
-              disabled:opacity-60 disabled:cursor-not-allowed
-              transition-all
-            "
+              disabled:opacity-60 transition-all"
           >
             + Add User
           </button>
         </div>
 
-        {/* CONTENT */}
+        {/* TABLE */}
         {loading ? (
           <div className="text-center py-10 text-gray-500">
             Loading users…
           </div>
-        ) : users.length === 0 ? (
-          <div className="text-center py-10 text-gray-500">
-            No users found. Start by adding one.
-          </div>
         ) : (
-          <div className="relative -mx-4 sm:mx-0 overflow-x-auto">
-            <div className="min-w-[700px] sm:min-w-full px-4 sm:px-0">
-              <UserTable
-                users={users}
-                onEdit={storedUser.role === "admin" ? handleEdit : null}
-                onDelete={storedUser.role === "admin" ? handleDelete : null}
-              />
-            </div>
-          </div>
+          <UserTable
+            users={users}
+            onEdit={storedUser.role === "admin" ? handleEdit : null}
+            onDelete={storedUser.role === "admin" ? handleDelete : null}
+            onResetPassword={
+              storedUser.role === "admin" ? handleResetPassword : null
+            }
+          />
         )}
       </motion.div>
 
@@ -377,7 +427,7 @@ const ManageUsers = () => {
         />
       )}
 
-      {/* DELETE CONFIRM */}
+      {/* DELETE MODAL */}
       {showDelete && selectedUser && (
         <ConfirmDeleteModal
           user={selectedUser}
@@ -385,6 +435,57 @@ const ManageUsers = () => {
           onClose={() => !saving && setShowDelete(false)}
           onConfirm={confirmDelete}
         />
+      )}
+
+      {/* 🔑 RESET PASSWORD MODAL */}
+      {showResetPassword && selectedUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-2">
+              Reset Password
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Set new password for <b>{selectedUser.email}</b>
+            </p>
+
+           <div className="relative mb-4">
+  <input
+    type={showPassword ? "text" : "password"}
+    placeholder="New password"
+    value={newPassword}
+    onChange={(e) => setNewPassword(e.target.value)}
+    className="input pr-10"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPassword((prev) => !prev)}
+    className="absolute right-3 top-1/2 -translate-y-1/2
+      text-gray-500 hover:text-gray-700 transition"
+    aria-label="Toggle password visibility"
+  >
+    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+  </button>
+</div>
+
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowResetPassword(false)}
+                className="px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitResetPassword}
+                className="btn-primary"
+                disabled={saving}
+              >
+                Update Password
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
