@@ -702,10 +702,9 @@ const Login = () => {
         >
           <div className="absolute inset-0 bg-gradient-to-br from-orange-900/70 to-orange-600/70" />
           <div className="relative z-10 text-center px-8">
-            <h1 className="text-5xl font-extrabold text-white">Glowlogics</h1>
+            <h1 className="text-5xl font-extrabold text-white">Glowlogics Management Portal</h1>
             <p className="mt-4 text-base text-orange-100 max-w-sm">
-              A modern management portal to handle attendance,
-              performance, revenue & teams all in one place.
+              Manage the grind without the chaos.
             </p>
           </div>
         </div>
