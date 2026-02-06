@@ -1,42 +1,4 @@
-// import { useParams, useNavigate } from "react-router-dom";
-// import { useState } from "react";
-// import api from "../api/axios";
-// import { toast } from "react-toastify";
 
-// const ResetPassword = () => {
-//   const { token } = useParams();
-//   const navigate = useNavigate();
-//   const [password, setPassword] = useState("");
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     try {
-//       await api.post(`/auth/reset-password/${token}`, { password });
-//       toast.success("Password reset successful");
-//       navigate("/");
-//     } catch {
-//       toast.error("Reset failed");
-//     }
-//   };
-
-//   return (
-//     <form onSubmit={handleSubmit} className="min-h-screen flex justify-center items-center">
-//       <div className="bg-white p-6 rounded-xl">
-//         <h2 className="text-xl mb-4">Set New Password</h2>
-//         <input
-//           type="password"
-//           className="border p-2 w-full"
-//           onChange={(e) => setPassword(e.target.value)}
-//         />
-//         <button className="mt-4 w-full bg-orange-600 text-white py-2 rounded">
-//           Reset Password
-//         </button>
-//       </div>
-//     </form>
-//   );
-// };
-
-// export default ResetPassword;
 
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -51,7 +13,7 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔥 FORCE LOGOUT FOR RESET FLOW
+  //  FORCE LOGOUT FOR RESET FLOW
   useEffect(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
