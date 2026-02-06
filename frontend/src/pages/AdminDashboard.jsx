@@ -1,609 +1,186 @@
-// import React, { useEffect, useState, useMemo } from "react";
-// import Sidebar from "../components/Sidebar";
-// import Navbar from "../components/Navbar";
-// import AnalyticsCards from "../components/AnalyticsCards";
-// import RevenueChart from "../components/RevenueChart";
-// import TeamPerformanceChart from "../components/TeamPerformanceChart";
-// import AnnouncementList from "../components/AnnouncementList";
-// import AddAnnouncement from "../components/AddAnnouncement";
-// import AdminLeaveApproval from "../components/AdminLeaveApproval";
-// import TopPerformers from "../components/TopPerformers";
-// import ManagerRevenue from "../components/ManagerRevenue";
-// import BirthdayBanner from "../components/BirthdayBanner";
-// import api from "../api/axios";
-
-// const AdminDashboard = () => {
-//   const [user, setUser] = useState(null);
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-//   const [rawStats, setRawStats] = useState({});
-//   const [rawRevenue, setRawRevenue] = useState([]);
-//   const [rawPerformance, setRawPerformance] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   // 📅 Excel filters
-//   const [month, setMonth] = useState(new Date().getMonth() + 1);
-//   const [year, setYear] = useState(new Date().getFullYear());
-
-//   /* -------------------------------
-//       INIT
-//   -------------------------------- */
-//   useEffect(() => {
-//     const u = JSON.parse(localStorage.getItem("user"));
-//     if (!u) return;
-//     setUser(u);
-//     fetchAdminAnalytics();
-//   }, []);
-
-//   /* -------------------------------
-//       FETCH ANALYTICS (SAFE)
-//   -------------------------------- */
-//   const fetchAdminAnalytics = async () => {
-//     try {
-//       const [o, r, p] = await Promise.all([
-//         api.get("/analytics/overview"),
-//         api.get("/analytics/revenue"),
-//         api.get("/analytics/performance"),
-//       ]);
-
-//       setRawStats(
-//         typeof o.data === "object" && o.data !== null ? o.data : {}
-//       );
-
-//       setRawRevenue(
-//         Array.isArray(r.data)
-//           ? r.data
-//           : Array.isArray(r.data?.data)
-//           ? r.data.data
-//           : []
-//       );
-
-//       setRawPerformance(
-//         Array.isArray(p.data)
-//           ? p.data
-//           : Array.isArray(p.data?.data)
-//           ? p.data.data
-//           : []
-//       );
-//     } catch (err) {
-//       console.error("Admin analytics failed", err);
-//       setRawStats({});
-//       setRawRevenue([]);
-//       setRawPerformance([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // ✅ Memoized safe data
-//   const stats = useMemo(() => rawStats, [rawStats]);
-//   const revenueData = useMemo(
-//     () => (Array.isArray(rawRevenue) ? rawRevenue : []),
-//     [rawRevenue]
-//   );
-//   const performanceData = useMemo(
-//     () => (Array.isArray(rawPerformance) ? rawPerformance : []),
-//     [rawPerformance]
-//   );
-
-//   /* -------------------------------
-//       EXCEL EXPORT
-//   -------------------------------- */
-//   const downloadLeaveExcel = async () => {
-//     try {
-//       const res = await api.get(
-//         `/leaves/export?month=${Number(month)}&year=${Number(year)}`,
-//         { responseType: "blob" }
-//       );
-
-//       const url = window.URL.createObjectURL(
-//         new Blob([res.data])
-//       );
-//       const link = document.createElement("a");
-//       link.href = url;
-//       link.download = `Leave_Report_${month}_${year}.xlsx`;
-//       document.body.appendChild(link);
-//       link.click();
-//       link.remove();
-//     } catch {
-//       alert("Failed to download leave report");
-//     }
-//   };
-
-//   /* -------------------------------
-//       LOGOUT
-//   -------------------------------- */
-//   const handleLogout = () => {
-//     localStorage.clear();
-//     window.location.href = "/";
-//   };
-
-//   if (!user) return null;
-
-//   return (
-//     <div className="flex min-h-screen bg-gray-200">
-//       {/* SIDEBAR */}
-//       <Sidebar
-//         onLogout={handleLogout}
-//         isOpen={sidebarOpen}
-//         setIsOpen={setSidebarOpen}
-//       />
-
-//       {/* MAIN */}
-//       <div className="flex-1 md:ml-64 px-4 sm:px-6 py-6 space-y-8">
-//         <Navbar user={user} onMenuClick={() => setSidebarOpen(true)} />
-
-//         {/* 🎂 BIRTHDAY */}
-//         <BirthdayBanner />
-
-//         {/* 📊 ANALYTICS */}
-//         <section>
-//           <AnalyticsCards data={stats} />
-//         </section>
-
-//         {/* 📈 CHARTS */}
-//         <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-//           <div className="bg-white rounded-2xl shadow-sm p-5">
-//             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-//               Revenue Overview
-//             </h3>
-//             <RevenueChart data={revenueData} />
-//           </div>
-
-//           <div className="bg-white rounded-2xl shadow-sm p-5">
-//             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-//               Team Performance
-//             </h3>
-//             <TeamPerformanceChart data={performanceData} />
-//           </div>
-//         </section>
-
-//         {/* 👨‍💼 MANAGER REVENUE */}
-//         <ManagerRevenue />
-
-//         {/* 🏆 TOP PERFORMERS */}
-//         <section>
-//           <h3 className="text-xl font-bold text-gray-800 mb-4">
-//             Top Performers
-//           </h3>
-//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//             <TopPerformers type="daily" title="🏅 Daily" />
-//             <TopPerformers type="weekly" title="🔥 Weekly" />
-//             <TopPerformers type="monthly" title="🏆 Monthly" />
-//           </div>
-//         </section>
-
-//         {/* 📝 LEAVES */}
-//         <section className="bg-white rounded-2xl shadow-sm p-6">
-//           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-//             <h3 className="text-xl font-semibold text-gray-800">
-//               Leave Approvals
-//             </h3>
-
-//             <div className="flex flex-wrap gap-2">
-//               <select
-//                 value={month}
-//                 onChange={(e) => setMonth(Number(e.target.value))}
-//                 className="border rounded-lg px-3 py-2 text-sm"
-//               >
-//                 {[...Array(12)].map((_, i) => (
-//                   <option key={i + 1} value={i + 1}>
-//                     Month {i + 1}
-//                   </option>
-//                 ))}
-//               </select>
-
-//               <select
-//                 value={year}
-//                 onChange={(e) => setYear(Number(e.target.value))}
-//                 className="border rounded-lg px-3 py-2 text-sm"
-//               >
-//                 {[2024, 2025, 2026].map((y) => (
-//                   <option key={y} value={y}>
-//                     {y}
-//                   </option>
-//                 ))}
-//               </select>
-
-//               <button
-//                 onClick={downloadLeaveExcel}
-//                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-//               >
-//                 ⬇ Download Excel
-//               </button>
-//             </div>
-//           </div>
-
-//           <AdminLeaveApproval />
-//         </section>
-
-//         {/* 📢 ANNOUNCEMENTS */}
-//         <section className="bg-white rounded-2xl shadow-sm p-6">
-//           <AddAnnouncement />
-//           <AnnouncementList />
-//         </section>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default AdminDashboard;
-
-
-
-// import React, { useEffect, useState, useMemo } from "react";
-// import Sidebar from "../components/Sidebar";
-// import Navbar from "../components/Navbar";
-// import AnalyticsCards from "../components/AnalyticsCards";
-// import RevenueChart from "../components/RevenueChart";
-// import TeamPerformanceChart from "../components/TeamPerformanceChart";
-// import AnnouncementList from "../components/AnnouncementList";
-// import AddAnnouncement from "../components/AddAnnouncement";
-// import AdminLeaveApproval from "../components/AdminLeaveApproval";
-// import TopPerformers from "../components/TopPerformers";
-// import ManagerRevenue from "../components/ManagerRevenue";
-// import BirthdayBanner from "../components/BirthdayBanner";
-// import api from "../api/axios";
-
-// const AdminDashboard = () => {
-//   const [user, setUser] = useState(null);
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-//   const [stats, setStats] = useState({});
-//   const [revenueData, setRevenueData] = useState([]);
-//   const [performanceData, setPerformanceData] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   const [month, setMonth] = useState(new Date().getMonth() + 1);
-//   const [year, setYear] = useState(new Date().getFullYear());
-
-//   /* ================= INIT ================= */
-//   useEffect(() => {
-//     const u = JSON.parse(localStorage.getItem("user"));
-//     if (!u) return;
-//     setUser(u);
-//     fetchAnalytics(u.role);
-//   }, []);
-
-//   /* ================= FETCH ANALYTICS ================= */
-//   const fetchAnalytics = async (role) => {
-//     try {
-//       // Always allowed
-//       const overviewReq = api.get("/analytics/overview");
-//       const performanceReq = api.get("/analytics/performance");
-
-//       // Admin-only
-//       const revenueReq =
-//         role === "admin" ? api.get("/analytics/revenue") : null;
-
-//       const responses = await Promise.all([
-//         overviewReq,
-//         performanceReq,
-//         revenueReq,
-//       ]);
-
-//       const [overviewRes, performanceRes, revenueRes] = responses;
-
-//       setStats(overviewRes.data || []);
-//       setPerformanceData(
-//         Array.isArray(performanceRes.data)
-//           ? performanceRes.data
-//           : []
-//       );
-
-//       if (role === "admin") {
-//         setRevenueData(
-//           Array.isArray(revenueRes?.data)
-//             ? revenueRes.data
-//             : []
-//         );
-//       } else {
-//         setRevenueData([]);
-//       }
-//     } catch (err) {
-//       console.error("Admin/HR analytics failed", err);
-//       setStats({});
-//       setRevenueData([]);
-//       setPerformanceData([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   /* ================= LOGOUT ================= */
-//   const handleLogout = () => {
-//     localStorage.clear();
-//     window.location.href = "/";
-//   };
-
-//   if (!user || loading) return null;
-
-//   const isAdmin = user.role === "admin";
-
-//   return (
-//     <div className="flex min-h-screen bg-gray-200">
-//       <Sidebar
-//         onLogout={handleLogout}
-//         isOpen={sidebarOpen}
-//         setIsOpen={setSidebarOpen}
-//       />
-
-//       <div className="flex-1 md:ml-64 px-4 sm:px-6 py-6 space-y-8">
-//         <Navbar user={user} onMenuClick={() => setSidebarOpen(true)} />
-
-//         <BirthdayBanner />
-
-//         {/* ANALYTICS CARDS */}
-//         <AnalyticsCards data={stats} />
-
-//         {/* CHARTS */}
-//         <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-//           {isAdmin && (
-//             <div className="bg-white rounded-2xl shadow-sm p-5">
-//               <h3 className="text-lg font-semibold mb-4">
-//                 Revenue Overview
-//               </h3>
-//               <RevenueChart data={revenueData} />
-//             </div>
-//           )}
-
-//           <div className="bg-white rounded-2xl shadow-sm p-5">
-//             <h3 className="text-lg font-semibold mb-4">
-//               Team Performance
-//             </h3>
-//             <TeamPerformanceChart data={performanceData} />
-//           </div>
-//         </section>
-
-//         {/* MANAGER REVENUE (ADMIN ONLY) */}
-//         {isAdmin && <ManagerRevenue />}
-
-//         {/* TOP PERFORMERS (ADMIN ONLY) */}
-//         {isAdmin && (
-//           <section>
-//             <h3 className="text-xl font-bold mb-4">
-//               Top Performers
-//             </h3>
-//             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//               <TopPerformers type="daily" title="🏅 Daily" />
-//               <TopPerformers type="weekly" title="🔥 Weekly" />
-//               <TopPerformers type="monthly" title="🏆 Monthly" />
-//             </div>
-//           </section>
-//         )}
-
-//         {/* LEAVE APPROVALS */}
-//         <section className="bg-white rounded-2xl shadow-sm p-6">
-//           <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
-//             <h3 className="text-xl font-semibold">
-//               Leave Approvals
-//             </h3>
-
-//             <div className="flex gap-2">
-//               <select
-//                 value={month}
-//                 onChange={(e) => setMonth(+e.target.value)}
-//                 className="border rounded-lg px-3 py-2 text-sm"
-//               >
-//                 {[...Array(12)].map((_, i) => (
-//                   <option key={i} value={i + 1}>
-//                     Month {i + 1}
-//                   </option>
-//                 ))}
-//               </select>
-
-//               <select
-//                 value={year}
-//                 onChange={(e) => setYear(+e.target.value)}
-//                 className="border rounded-lg px-3 py-2 text-sm"
-//               >
-//                 {[2024, 2025, 2026].map((y) => (
-//                   <option key={y} value={y}>
-//                     {y}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-//           </div>
-
-//           <AdminLeaveApproval />
-//         </section>
-
-//         {/* ANNOUNCEMENTS */}
-//         <section className="bg-white rounded-2xl shadow-sm p-6">
-//           <AddAnnouncement />
-//           <AnnouncementList />
-//         </section>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default AdminDashboard;
-
-import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
-import AnalyticsCards from "../components/AnalyticsCards";
-import RevenueChart from "../components/RevenueChart";
-import TeamPerformanceChart from "../components/TeamPerformanceChart";
-import AnnouncementList from "../components/AnnouncementList";
-import AddAnnouncement from "../components/AddAnnouncement";
-import AdminLeaveApproval from "../components/AdminLeaveApproval";
-import TopPerformers from "../components/TopPerformers";
-import ManagerRevenue from "../components/ManagerRevenue";
-import BirthdayBanner from "../components/BirthdayBanner";
-import api from "../api/axios";
-
-const AdminDashboard = () => {
-  const [user, setUser] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const [stats, setStats] = useState({});
-  const [revenueData, setRevenueData] = useState([]);
-  const [performanceData, setPerformanceData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
-
-  /* ================= INIT ================= */
-  useEffect(() => {
-    const u = JSON.parse(localStorage.getItem("user"));
-    if (!u) return;
-    setUser(u);
-    fetchAnalytics(u.role);
-  }, []);
-
-  /* ================= FETCH ANALYTICS ================= */
-  const fetchAnalytics = async (role) => {
-    try {
-      const requests = [
-        api.get("/analytics/overview"),
-        api.get("/analytics/performance"),
-      ];
-
-      // 🔐 Admin-only revenue
-      if (role === "admin") {
-        requests.push(api.get("/analytics/revenue"));
+  import React, { useEffect, useState } from "react";
+  import Sidebar from "../components/Sidebar";
+  import Navbar from "../components/Navbar";
+  import AnalyticsCards from "../components/AnalyticsCards";
+  import RevenueChart from "../components/RevenueChart";
+  import TeamPerformanceChart from "../components/TeamPerformanceChart";
+  import AnnouncementList from "../components/AnnouncementList";
+  import AddAnnouncement from "../components/AddAnnouncement";
+  import AdminLeaveApproval from "../components/AdminLeaveApproval";
+  import TopPerformers from "../components/TopPerformers";
+  import ManagerRevenue from "../components/ManagerRevenue";
+  import BirthdayBanner from "../components/BirthdayBanner";
+  import api from "../api/axios";
+
+  const AdminDashboard = () => {
+    const [user, setUser] = useState(null);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    const [stats, setStats] = useState({});
+    const [revenueData, setRevenueData] = useState([]);
+    const [performanceData, setPerformanceData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
+    const [year, setYear] = useState(new Date().getFullYear());
+
+    /* ================= INIT ================= */
+    useEffect(() => {
+      const u = JSON.parse(localStorage.getItem("user"));
+      if (!u) return;
+      setUser(u);
+      fetchAnalytics(u.role);
+    }, []);
+
+    /* ================= FETCH ANALYTICS ================= */
+    const fetchAnalytics = async (role) => {
+      try {
+        const requests = [
+          api.get("/analytics/overview"),
+          api.get("/analytics/performance"),
+        ];
+
+        // 🔐 Admin-only revenue
+        if (role === "admin") {
+          requests.push(api.get("/analytics/revenue"));
+        }
+
+        const responses = await Promise.all(requests);
+
+        const overviewRes = responses[0];
+        const performanceRes = responses[1];
+        const revenueRes = role === "admin" ? responses[2] : null;
+
+        setStats(overviewRes?.data || {});
+        setPerformanceData(
+          Array.isArray(performanceRes?.data)
+            ? performanceRes.data
+            : []
+        );
+
+        setRevenueData(
+          role === "admin" && Array.isArray(revenueRes?.data)
+            ? revenueRes.data
+            : []
+        );
+      } catch (err) {
+        console.error("Admin/HR analytics failed", err);
+        setStats({});
+        setRevenueData([]);
+        setPerformanceData([]);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const responses = await Promise.all(requests);
+    /* ================= LOGOUT ================= */
+    const handleLogout = () => {
+      localStorage.clear();
+      window.location.href = "/";
+    };
 
-      const overviewRes = responses[0];
-      const performanceRes = responses[1];
-      const revenueRes = role === "admin" ? responses[2] : null;
+    if (!user || loading) return null;
 
-      setStats(overviewRes?.data || {});
-      setPerformanceData(
-        Array.isArray(performanceRes?.data)
-          ? performanceRes.data
-          : []
-      );
+    const isAdmin = user.role === "admin";
+    const isHR = user.role === "hr";
 
-      setRevenueData(
-        role === "admin" && Array.isArray(revenueRes?.data)
-          ? revenueRes.data
-          : []
-      );
-    } catch (err) {
-      console.error("Admin/HR analytics failed", err);
-      setStats({});
-      setRevenueData([]);
-      setPerformanceData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return (
+      <div className="flex min-h-screen bg-gray-200">
+        <Sidebar
+          onLogout={handleLogout}
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
+        />
 
-  /* ================= LOGOUT ================= */
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = "/";
-  };
+        <div className="flex-1 md:ml-64 px-4 sm:px-6 py-6 space-y-8">
+          <Navbar user={user} onMenuClick={() => setSidebarOpen(true)} />
 
-  if (!user || loading) return null;
+          <BirthdayBanner />
 
-  const isAdmin = user.role === "admin";
-  const isHR = user.role === "hr";
+          {/* ANALYTICS CARDS */}
+          <AnalyticsCards data={stats} />
 
-  return (
-    <div className="flex min-h-screen bg-gray-200">
-      <Sidebar
-        onLogout={handleLogout}
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
-      />
+          {/* CHARTS */}
+          <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {isAdmin && (
+              <div className="bg-white rounded-2xl shadow-sm p-5">
+                <h3 className="text-lg font-semibold mb-4">
+                  Revenue Overview
+                </h3>
+                <RevenueChart data={revenueData} />
+              </div>
+            )}
 
-      <div className="flex-1 md:ml-64 px-4 sm:px-6 py-6 space-y-8">
-        <Navbar user={user} onMenuClick={() => setSidebarOpen(true)} />
-
-        <BirthdayBanner />
-
-        {/* ANALYTICS CARDS */}
-        <AnalyticsCards data={stats} />
-
-        {/* CHARTS */}
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {isAdmin && (
             <div className="bg-white rounded-2xl shadow-sm p-5">
               <h3 className="text-lg font-semibold mb-4">
-                Revenue Overview
+                Team Performance
               </h3>
-              <RevenueChart data={revenueData} />
-            </div>
-          )}
-
-          <div className="bg-white rounded-2xl shadow-sm p-5">
-            <h3 className="text-lg font-semibold mb-4">
-              Team Performance
-            </h3>
-            <TeamPerformanceChart data={performanceData} />
-          </div>
-        </section>
-
-        {/* MANAGER-WISE REVENUE (ADMIN + HR) */}
-        {(isAdmin || isHR) && <ManagerRevenue />}
-
-        {/* TOP PERFORMERS (ADMIN + HR) */}
-        {(isAdmin || isHR) && (
-          <section>
-            <h3 className="text-xl font-bold mb-4">
-              Top Performers
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <TopPerformers type="daily" title="🏅 Daily" />
-              <TopPerformers type="weekly" title="🔥 Weekly" />
-              <TopPerformers type="monthly" title="🏆 Monthly" />
+              <TeamPerformanceChart data={performanceData} />
             </div>
           </section>
-        )}
 
-        {/* LEAVE APPROVALS */}
-        <section className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
-            <h3 className="text-xl font-semibold">
-              Leave Approvals
-            </h3>
+          {/* MANAGER-WISE REVENUE (ADMIN + HR) */}
+          {(isAdmin || isHR) && <ManagerRevenue />}
 
-            <div className="flex gap-2">
-              <select
-                value={month}
-                onChange={(e) => setMonth(+e.target.value)}
-                className="border rounded-lg px-3 py-2 text-sm"
-              >
-                {[...Array(12)].map((_, i) => (
-                  <option key={i} value={i + 1}>
-                    Month {i + 1}
-                  </option>
-                ))}
-              </select>
+          {/* TOP PERFORMERS (ADMIN + HR) */}
+          {(isAdmin || isHR) && (
+            <section>
+              <h3 className="text-xl font-bold mb-4">
+                Top Performers
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <TopPerformers type="daily" title="🏅 Daily" />
+                <TopPerformers type="weekly" title="🔥 Weekly" />
+                <TopPerformers type="monthly" title="🏆 Monthly" />
+              </div>
+            </section>
+          )}
 
-              <select
-                value={year}
-                onChange={(e) => setYear(+e.target.value)}
-                className="border rounded-lg px-3 py-2 text-sm"
-              >
-                {[2024, 2025, 2026].map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+          {/* LEAVE APPROVALS */}
+          <section className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
+              <h3 className="text-xl font-semibold">
+                Leave Approvals
+              </h3>
+
+              <div className="flex gap-2">
+                <select
+                  value={month}
+                  onChange={(e) => setMonth(+e.target.value)}
+                  className="border rounded-lg px-3 py-2 text-sm"
+                >
+                  {[...Array(12)].map((_, i) => (
+                    <option key={i} value={i + 1}>
+                      Month {i + 1}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={year}
+                  onChange={(e) => setYear(+e.target.value)}
+                  className="border rounded-lg px-3 py-2 text-sm"
+                >
+                  {[2024, 2025, 2026].map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
 
-          <AdminLeaveApproval />
-        </section>
+            <AdminLeaveApproval />
+          </section>
 
-        {/* ANNOUNCEMENTS */}
-        <section className="bg-white rounded-2xl shadow-sm p-6">
-          <AddAnnouncement />
-          <AnnouncementList />
-        </section>
+          {/* ANNOUNCEMENTS */}
+          <section className="bg-white rounded-2xl shadow-sm p-6">
+            <AddAnnouncement />
+            <AnnouncementList />
+          </section>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default AdminDashboard;
+  export default AdminDashboard;

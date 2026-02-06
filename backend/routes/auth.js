@@ -118,7 +118,7 @@ router.post("/forgot-password", async (req, res) => {
     const message = `
 Hi ${user.name},
 
-You requested a password reset for your Glowlogics CRM account.
+You requested a password reset for your Glowlogics Management Portal account.
 
 Reset your password using the link below (valid for 15 minutes):
 
@@ -131,7 +131,7 @@ If you did not request this, ignore this email.
 
     await sendEmail({
       to: user.email,
-      subject: "Glowlogics CRM – Password Reset",
+      subject: "Glowlogics GMP – Password Reset",
       html: `<pre>${message}</pre>`,
     });
 
