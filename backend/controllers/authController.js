@@ -32,18 +32,39 @@ export const login = async (req, res) => {
     /* ===============================
        🔒 LOCATION BASED LOGIN CHECK
     =============================== */
-    const clientIp = getClientIp(req);
-    console.log("Login IP:", clientIp);
+    // const clientIp = getClientIp(req);
+    // console.log("Login IP:", clientIp);
 
-    // Admin bypass
-    if (user.role !== "admin") {
-      if (!isOfficeIp(clientIp)) {
-        return res.status(403).json({
-          success: false,
-          message: "Login allowed only from office network",
-        });
-      }
-    }
+    // // Admin bypass
+    // if (user.role !== "admin") {
+    //   if (!isOfficeIp(clientIp)) {
+    //     return res.status(403).json({
+    //       success: false,
+    //       message: "Login allowed only from office network",
+    //     });
+    //   }
+    // }
+
+ /* ===============================
+      code update for local changes to login all the dashboards
+    =============================== */
+
+
+const clientIp = getClientIp(req);
+console.log("Login IP:", clientIp);
+
+// 🔧 DEV MODE BYPASS (LOCAL DEVELOPMENT ONLY)
+if (process.env.DISABLE_OFFICE_IP_CHECK === "true") {
+  console.log("⚠️ Office IP check disabled (DEV MODE)");
+} else {
+  // Production behavior
+  if (!isOfficeIp(clientIp)) {
+    return res.status(403).json({
+      success: false,
+      message: "Login allowed only from office network",
+    });
+  }
+}
 
     /* ===============================
        🔐 PASSWORD CHECK

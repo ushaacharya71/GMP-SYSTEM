@@ -776,7 +776,7 @@ const Login = () => {
             </div>
 
             {/* FORGOT PASSWORD */}
-            <div className="text-right">
+            {/* <div className="text-right">
               <button
                 type="button"
                 onClick={() => navigate("/forgot-password")}
@@ -784,7 +784,7 @@ const Login = () => {
               >
                 Forgot password?
               </button>
-            </div>
+            </div> */}
 
             {/* SUBMIT */}
             <motion.button

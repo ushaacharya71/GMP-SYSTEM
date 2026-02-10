@@ -1549,7 +1549,7 @@ import {
 } from "react-router-dom";
 
 import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
+// import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
 /* DASHBOARDS */
@@ -1603,7 +1603,7 @@ const AppRoutes = ({ user }) => {
       />
 
       {/* ================= AUTH ================= */}
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+      {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       {/* ================= ADMIN + HR ================= */}

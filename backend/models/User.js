@@ -1,19 +1,13 @@
-
 // import mongoose from "mongoose";
 // import bcrypt from "bcryptjs";
 // import crypto from "crypto";
 
-// /**
-//  * Leave config (NO usage stored here)
-//  * Usage is derived from Leave collection
-//  */
 // const leaveConfigSchema = {
 //   total: { type: Number, default: 6 },
 // };
 
 // const userSchema = new mongoose.Schema(
 //   {
-//     /* ================= BASIC INFO ================= */
 //     name: { type: String, required: true },
 
 //     email: {
@@ -25,12 +19,11 @@
 
 //     password: { type: String, required: true },
 
-//    role: {
-//   type: String,
-//   enum: ["admin", "hr", "manager", "employee", "intern"],
-//   default: "intern",
-// },
-
+//     role: {
+//       type: String,
+//       enum: ["admin", "hr", "manager", "employee", "intern"],
+//       default: "intern",
+//     },
 
 //     phone: { type: String, default: "" },
 //     avatar: { type: String, default: "" },
@@ -47,7 +40,6 @@
 //       default: null,
 //     },
 
-//     /* ================= LEAVE CONFIG ================= */
 //     leaves: {
 //       sick: leaveConfigSchema,
 //       casual: leaveConfigSchema,
@@ -60,27 +52,22 @@
 //       },
 //     ],
 
-//     /* ================= 🔐 FORGOT PASSWORD ================= */
+//     /* 🔐 FORGOT PASSWORD */
 //     resetPasswordToken: { type: String, default: null },
 //     resetPasswordExpires: { type: Date, default: null },
 //   },
 //   { timestamps: true }
 // );
 
-// /* =====================================================
-//    🔐 PASSWORD HASHING
-// ===================================================== */
+// /* 🔐 PASSWORD HASH */
 // userSchema.pre("save", async function (next) {
 //   if (!this.isModified("password")) return next();
-
 //   const salt = await bcrypt.genSalt(10);
 //   this.password = await bcrypt.hash(this.password, salt);
 //   next();
 // });
 
-// /* =====================================================
-//    🧠 LEAVE CONFIG NORMALIZATION
-// ===================================================== */
+// /* 🧠 LEAVE NORMALIZATION */
 // userSchema.pre("save", function (next) {
 //   if (this.role === "intern") {
 //     this.leaves = {
@@ -100,16 +87,12 @@
 //   next();
 // });
 
-// /* =====================================================
-//    🔐 PASSWORD CHECK
-// ===================================================== */
+// /* 🔐 PASSWORD CHECK */
 // userSchema.methods.comparePassword = async function (candidate) {
 //   return bcrypt.compare(candidate, this.password);
 // };
 
-// /* =====================================================
-//    🔁 GENERATE PASSWORD RESET TOKEN
-// ===================================================== */
+// /* 🔁 PASSWORD RESET TOKEN (USE THIS) */
 // userSchema.methods.generatePasswordReset = function () {
 //   const rawToken = crypto.randomBytes(32).toString("hex");
 
@@ -118,7 +101,7 @@
 //     .update(rawToken)
 //     .digest("hex");
 
-//   this.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+//   this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
 
 //   return rawToken;
 // };
@@ -135,6 +118,7 @@ const leaveConfigSchema = {
 
 const userSchema = new mongoose.Schema(
   {
+    /* ================= BASIC INFO ================= */
     name: { type: String, required: true },
 
     email: {
@@ -152,6 +136,12 @@ const userSchema = new mongoose.Schema(
       default: "intern",
     },
 
+    /* 💰 REVENUE (CACHED TOTAL – VERY IMPORTANT) */
+    revenue: {
+      type: Number,
+      default: 0,
+    },
+
     phone: { type: String, default: "" },
     avatar: { type: String, default: "" },
 
@@ -167,6 +157,7 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    /* ================= LEAVES ================= */
     leaves: {
       sick: leaveConfigSchema,
       casual: leaveConfigSchema,
@@ -179,14 +170,16 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    /* 🔐 FORGOT PASSWORD */
+    /* ================= FORGOT PASSWORD ================= */
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );
 
-/* 🔐 PASSWORD HASH */
+/* =====================================================
+   🔐 PASSWORD HASHING
+===================================================== */
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
@@ -194,7 +187,9 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-/* 🧠 LEAVE NORMALIZATION */
+/* =====================================================
+   🧠 LEAVE NORMALIZATION
+===================================================== */
 userSchema.pre("save", function (next) {
   if (this.role === "intern") {
     this.leaves = {
@@ -214,12 +209,16 @@ userSchema.pre("save", function (next) {
   next();
 });
 
-/* 🔐 PASSWORD CHECK */
+/* =====================================================
+   🔐 PASSWORD CHECK
+===================================================== */
 userSchema.methods.comparePassword = async function (candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
-/* 🔁 PASSWORD RESET TOKEN (USE THIS) */
+/* =====================================================
+   🔁 PASSWORD RESET TOKEN
+===================================================== */
 userSchema.methods.generatePasswordReset = function () {
   const rawToken = crypto.randomBytes(32).toString("hex");
 
