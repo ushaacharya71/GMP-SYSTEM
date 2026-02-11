@@ -419,7 +419,7 @@ const UserModal = ({ user, isEdit, onClose, onSave, allUsers = [] }) => {
             {isAdmin && <option value="admin">Admin</option>}
             {(isAdmin || isHR) && <option value="hr">HR</option>}
             {(isAdmin || isHR) && <option value="manager">Manager</option>}
-            <option value="employee">Probation Employee</option>
+            <option value="employee">Probation/Employee</option>
             <option value="intern">Intern</option>
           </select>
 
