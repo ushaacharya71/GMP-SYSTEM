@@ -40,26 +40,20 @@ const AdminDashboard = () => {
         api.get("/analytics/performance"),
       ];
 
-      // 🔐 Admin-only revenue
       if (role === "admin") {
         requests.push(api.get("/analytics/revenue"));
       }
 
       const responses = await Promise.all(requests);
 
-      const overviewRes = responses[0];
-      const performanceRes = responses[1];
-      const revenueRes = role === "admin" ? responses[2] : null;
-
-      setStats(overviewRes?.data || {});
+      setStats(responses[0]?.data || {});
       setPerformanceData(
-        Array.isArray(performanceRes?.data) ? performanceRes.data : [],
+        Array.isArray(responses[1]?.data) ? responses[1].data : []
       );
-
       setRevenueData(
-        role === "admin" && Array.isArray(revenueRes?.data)
-          ? revenueRes.data
-          : [],
+        role === "admin" && Array.isArray(responses[2]?.data)
+          ? responses[2].data
+          : []
       );
     } catch (err) {
       console.error("Admin/HR analytics failed", err);
@@ -75,6 +69,36 @@ const AdminDashboard = () => {
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/";
+  };
+
+  /* ================= ✅ DOWNLOAD ATTENDANCE ================= */
+  const downloadAttendance = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await api.get("/attendance/hr/export", {
+        responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const blob = new Blob([res.data], {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "attendance.xlsx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("Attendance download failed", err);
+      alert("Failed to download attendance");
+    }
   };
 
   if (!user || loading) return null;
@@ -95,28 +119,29 @@ const AdminDashboard = () => {
 
         <BirthdayBanner />
 
-        {/* ANALYTICS CARDS */}
         <AnalyticsCards data={stats} />
 
         {/* CHARTS */}
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {isAdmin && (
             <div className="bg-white rounded-2xl shadow-sm p-5">
-              <h3 className="text-lg font-semibold mb-4">Revenue Overview</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                Revenue Overview
+              </h3>
               <RevenueChart data={revenueData} />
             </div>
           )}
 
           <div className="bg-white rounded-2xl shadow-sm p-5">
-            <h3 className="text-lg font-semibold mb-4">Team Performance</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Team Performance
+            </h3>
             <TeamPerformanceChart data={performanceData} />
           </div>
         </section>
 
-        {/* MANAGER-WISE REVENUE (ADMIN + HR) */}
         {(isAdmin || isHR) && <ManagerRevenue />}
 
-        {/* TOP PERFORMERS (ADMIN + HR) */}
         {(isAdmin || isHR) && (
           <section>
             <h3 className="text-xl font-bold mb-4">Top Performers</h3>
@@ -130,10 +155,20 @@ const AdminDashboard = () => {
 
         {/* LEAVE APPROVALS */}
         <section className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
             <h3 className="text-xl font-semibold">Leave Approvals</h3>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {/* ✅ ADMIN + HR DOWNLOAD */}
+              {(isAdmin || isHR) && (
+                <button
+                  onClick={downloadAttendance}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md"
+                >
+                  ⬇ Download Attendance
+                </button>
+              )}
+
               <select
                 value={month}
                 onChange={(e) => setMonth(+e.target.value)}
@@ -163,7 +198,6 @@ const AdminDashboard = () => {
           <AdminLeaveApproval />
         </section>
 
-        {/* ANNOUNCEMENTS */}
         <section className="bg-white rounded-2xl shadow-sm p-6">
           <AddAnnouncement />
           <AnnouncementList />
