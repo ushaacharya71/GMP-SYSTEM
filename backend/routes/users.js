@@ -2251,7 +2251,42 @@ router.delete(
     }
   }
 );
+/* =====================================================
+   ADMIN → RESET USER PASSWORD
+===================================================== */
+router.post(
+  "/:id/reset-password",
+  protect,
+  authorizeRoles("admin"),
+  async (req, res) => {
+    try {
+      const { password } = req.body;
 
+      if (!password || password.length < 6) {
+        return res.status(400).json({
+          message: "Password must be at least 6 characters",
+        });
+      }
+
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      user.password = password; // will auto hash from schema pre-save
+      await user.save();
+
+      res.json({
+        success: true,
+        message: "Password updated successfully",
+      });
+    } catch (err) {
+      console.error("Reset password error:", err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
 /* =====================================================
    UPDATE USER
 ===================================================== */
