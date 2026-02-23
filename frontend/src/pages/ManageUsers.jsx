@@ -1,12 +1,11 @@
-
-// import React, { useEffect, useState } from "react";
+// import React, { useEffect, useState, useMemo } from "react";
 // import api from "../api/axios";
 // import UserTable from "../components/UserTable";
 // import UserModal from "../components/UserModal";
 // import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 // import { motion } from "framer-motion";
 // import { toast } from "react-toastify";
-// import { Eye, EyeOff } from "lucide-react";
+// import { Eye, EyeOff, Search } from "lucide-react";
 
 // const ManageUsers = () => {
 //   const [users, setUsers] = useState([]);
@@ -17,7 +16,8 @@
 //   const [loading, setLoading] = useState(true);
 //   const [saving, setSaving] = useState(false);
 
-//   /* 🔑 RESET PASSWORD */
+//   const [search, setSearch] = useState("");
+
 //   const [showResetPassword, setShowResetPassword] = useState(false);
 //   const [newPassword, setNewPassword] = useState("");
 //   const [showPassword, setShowPassword] = useState(false);
@@ -26,7 +26,12 @@
 
 //   /* ================= ROLE GUARD ================= */
 //   useEffect(() => {
-//     if (!storedUser || !["admin", "manager"].includes(storedUser.role)) {
+//     if (
+//       !storedUser ||
+//       !["admin", "manager", "marketing_manager"].includes(
+//         storedUser.role
+//       )
+//     ) {
 //       window.location.href = "/unauthorized";
 //       return;
 //     }
@@ -38,8 +43,11 @@
 //   const fetchUsers = async () => {
 //     try {
 //       setLoading(true);
+
 //       const res =
-//         storedUser.role === "manager"
+//         ["manager", "marketing_manager"].includes(
+//           storedUser.role
+//         )
 //           ? await api.get("/users/manager/interns")
 //           : await api.get("/users");
 
@@ -51,6 +59,13 @@
 //       setLoading(false);
 //     }
 //   };
+
+//   /* ================= FILTER USERS ================= */
+//   const filteredUsers = useMemo(() => {
+//     return users.filter((u) =>
+//       u.name?.toLowerCase().includes(search.toLowerCase())
+//     );
+//   }, [users, search]);
 
 //   /* ================= HANDLERS ================= */
 //   const handleAdd = () => {
@@ -70,7 +85,7 @@
 //     setShowDelete(true);
 //   };
 
-//   /* 🔑 RESET PASSWORD */
+//   /* ================= RESET PASSWORD ================= */
 //   const handleResetPassword = (user) => {
 //     if (storedUser.role !== "admin") return;
 //     setSelectedUser(user);
@@ -121,24 +136,30 @@
 //     }
 //   };
 
-//   /* ================= SAVE USER (🔥 FIXED) ================= */
+//   /* ================= SAVE USER ================= */
 //   const handleSave = async (data) => {
 //     try {
 //       setSaving(true);
+
 //       const payload = { ...data };
 
-//       // 🔐 Manager can never control manager field
-//       if (storedUser.role === "manager") {
+//       // Managers cannot change their own manager
+//       if (
+//         ["manager", "marketing_manager"].includes(
+//           storedUser.role
+//         )
+//       ) {
 //         delete payload.manager;
 //       }
 
-//       // 🧹 FIX: never send empty manager
-//       if (payload.manager === "") {
-//         payload.manager = null;
-//       }
+//       if (payload.manager === "") payload.manager = null;
 
-//       // 🧠 Roles that don't need manager
-//       if (!["intern", "employee"].includes(payload.role)) {
+//       // Only these roles can have managers
+//       if (
+//         !["intern", "employee", "marketing_intern"].includes(
+//           payload.role
+//         )
+//       ) {
 //         payload.manager = null;
 //       }
 
@@ -169,10 +190,15 @@
 //         className="bg-white shadow-xl rounded-2xl p-6"
 //       >
 //         {/* HEADER */}
-//         <div className="flex justify-between items-center mb-6">
+//         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
 //           <div>
 //             <h2 className="text-2xl font-bold text-gray-800">
-//               👥 {storedUser.role === "manager" ? "My Team" : "Manage Users"}
+//               👥{" "}
+//               {["manager", "marketing_manager"].includes(
+//                 storedUser.role
+//               )
+//                 ? "My Team"
+//                 : "Manage Users"}
 //             </h2>
 //             <p className="text-sm text-gray-500">
 //               Manage users, roles & credentials
@@ -190,6 +216,24 @@
 //           </button>
 //         </div>
 
+//         {/* SEARCH */}
+//         <div className="relative mb-6 max-w-sm">
+//           <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-200 via-orange-100 to-orange-200 blur-sm opacity-70"></div>
+
+//           <div className="relative flex items-center rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300">
+//             <Search size={18} className="ml-3 text-orange-500" />
+//             <input
+//               type="text"
+//               placeholder="Search by name…"
+//               value={search}
+//               onChange={(e) => setSearch(e.target.value)}
+//               className="w-full bg-transparent px-3 py-2.5
+//                 text-sm text-gray-700 placeholder-gray-400
+//                 rounded-xl focus:outline-none"
+//             />
+//           </div>
+//         </div>
+
 //         {/* TABLE */}
 //         {loading ? (
 //           <div className="text-center py-10 text-gray-500">
@@ -197,17 +241,20 @@
 //           </div>
 //         ) : (
 //           <UserTable
-//             users={users}
+//             users={filteredUsers}
+//             showSerialNo
 //             onEdit={storedUser.role === "admin" ? handleEdit : null}
 //             onDelete={storedUser.role === "admin" ? handleDelete : null}
 //             onResetPassword={
-//               storedUser.role === "admin" ? handleResetPassword : null
+//               storedUser.role === "admin"
+//                 ? handleResetPassword
+//                 : null
 //             }
 //           />
 //         )}
 //       </motion.div>
 
-//       {/* MODALS */}
+//       {/* USER MODAL */}
 //       {showModal && (
 //         <UserModal
 //           user={selectedUser}
@@ -218,6 +265,7 @@
 //         />
 //       )}
 
+//       {/* DELETE MODAL */}
 //       {showDelete && (
 //         <ConfirmDeleteModal
 //           user={selectedUser}
@@ -231,9 +279,12 @@
 //       {showResetPassword && (
 //         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 //           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-//             <h3 className="text-lg font-semibold mb-2">Reset Password</h3>
+//             <h3 className="text-lg font-semibold mb-2">
+//               Reset Password
+//             </h3>
 //             <p className="text-sm text-gray-500 mb-4">
-//               Set new password for <b>{selectedUser.email}</b>
+//               Set new password for{" "}
+//               <b>{selectedUser.email}</b>
 //             </p>
 
 //             <div className="relative mb-4">
@@ -241,20 +292,31 @@
 //                 type={showPassword ? "text" : "password"}
 //                 placeholder="New password"
 //                 value={newPassword}
-//                 onChange={(e) => setNewPassword(e.target.value)}
+//                 onChange={(e) =>
+//                   setNewPassword(e.target.value)
+//                 }
 //                 className="input pr-10"
 //               />
 //               <button
 //                 type="button"
-//                 onClick={() => setShowPassword((p) => !p)}
+//                 onClick={() =>
+//                   setShowPassword((p) => !p)
+//                 }
 //                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
 //               >
-//                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+//                 {showPassword ? (
+//                   <EyeOff size={18} />
+//                 ) : (
+//                   <Eye size={18} />
+//                 )}
 //               </button>
 //             </div>
 
 //             <div className="flex justify-end gap-3">
-//               <button onClick={closeResetModal} className="text-sm">
+//               <button
+//                 onClick={closeResetModal}
+//                 className="text-sm"
+//               >
 //                 Cancel
 //               </button>
 //               <button
@@ -274,8 +336,6 @@
 
 // export default ManageUsers;
 
-
-
 import React, { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
 import UserTable from "../components/UserTable";
@@ -294,10 +354,8 @@ const ManageUsers = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  /* 🔍 SEARCH */
   const [search, setSearch] = useState("");
 
-  /* 🔑 RESET PASSWORD */
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -306,7 +364,10 @@ const ManageUsers = () => {
 
   /* ================= ROLE GUARD ================= */
   useEffect(() => {
-    if (!storedUser || !["admin", "manager"].includes(storedUser.role)) {
+    if (
+      !storedUser ||
+      !["admin", "manager", "marketing"].includes(storedUser.role)
+    ) {
       window.location.href = "/unauthorized";
       return;
     }
@@ -318,10 +379,10 @@ const ManageUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res =
-        storedUser.role === "manager"
-          ? await api.get("/users/manager/interns")
-          : await api.get("/users");
+
+      const res = ["manager", "marketing"].includes(storedUser.role)
+        ? await api.get("/users/manager/interns")
+        : await api.get("/users");
 
       setUsers(Array.isArray(res.data) ? res.data : []);
     } catch {
@@ -332,10 +393,10 @@ const ManageUsers = () => {
     }
   };
 
-  /* ================= FILTERED USERS ================= */
+  /* ================= FILTER USERS ================= */
   const filteredUsers = useMemo(() => {
     return users.filter((u) =>
-      u.name?.toLowerCase().includes(search.toLowerCase())
+      u.name?.toLowerCase().includes(search.toLowerCase()),
     );
   }, [users, search]);
 
@@ -357,7 +418,7 @@ const ManageUsers = () => {
     setShowDelete(true);
   };
 
-  /* 🔑 RESET PASSWORD */
+  /* ================= RESET PASSWORD ================= */
   const handleResetPassword = (user) => {
     if (storedUser.role !== "admin") return;
     setSelectedUser(user);
@@ -374,10 +435,9 @@ const ManageUsers = () => {
 
     try {
       setSaving(true);
-      await api.post(
-        `/users/${selectedUser._id}/reset-password`,
-        { password: newPassword }
-      );
+      await api.post(`/users/${selectedUser._id}/reset-password`, {
+        password: newPassword,
+      });
       toast.success("Password updated successfully");
       closeResetModal();
     } catch (err) {
@@ -412,13 +472,17 @@ const ManageUsers = () => {
   const handleSave = async (data) => {
     try {
       setSaving(true);
+
       const payload = { ...data };
 
-      if (storedUser.role === "manager") {
+      // Managers & Marketing cannot change manager manually
+      if (["manager", "marketing"].includes(storedUser.role)) {
         delete payload.manager;
       }
 
       if (payload.manager === "") payload.manager = null;
+
+      // Only intern & employee can have manager
       if (!["intern", "employee"].includes(payload.role)) {
         payload.manager = null;
       }
@@ -453,7 +517,10 @@ const ManageUsers = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
-              👥 {storedUser.role === "manager" ? "My Team" : "Manage Users"}
+              👥{" "}
+              {["manager", "marketing"].includes(storedUser.role)
+                ? "My Team"
+                : "Manage Users"}
             </h2>
             <p className="text-sm text-gray-500">
               Manage users, roles & credentials
@@ -472,36 +539,26 @@ const ManageUsers = () => {
         </div>
 
         {/* SEARCH */}
-       <div className="relative mb-6 max-w-sm">
-  {/* Glow border */}
-  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-200 via-orange-100 to-orange-200 blur-sm opacity-70"></div>
+        <div className="relative mb-6 max-w-sm">
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-200 via-orange-100 to-orange-200 blur-sm opacity-70"></div>
 
-  <div className="relative flex items-center rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300">
-    <Search
-      size={18}
-      className="ml-3 text-orange-500"
-    />
-
-    <input
-      type="text"
-      placeholder="Search by name…"
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      className="
-        w-full bg-transparent px-3 py-2.5
-        text-sm text-gray-700 placeholder-gray-400
-        rounded-xl focus:outline-none
-      "
-    />
-  </div>
-</div>
-
+          <div className="relative flex items-center rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300">
+            <Search size={18} className="ml-3 text-orange-500" />
+            <input
+              type="text"
+              placeholder="Search by name…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent px-3 py-2.5
+                text-sm text-gray-700 placeholder-gray-400
+                rounded-xl focus:outline-none"
+            />
+          </div>
+        </div>
 
         {/* TABLE */}
         {loading ? (
-          <div className="text-center py-10 text-gray-500">
-            Loading users…
-          </div>
+          <div className="text-center py-10 text-gray-500">Loading users…</div>
         ) : (
           <UserTable
             users={filteredUsers}
@@ -515,7 +572,7 @@ const ManageUsers = () => {
         )}
       </motion.div>
 
-      {/* MODALS */}
+      {/* USER MODAL */}
       {showModal && (
         <UserModal
           user={selectedUser}
@@ -526,6 +583,7 @@ const ManageUsers = () => {
         />
       )}
 
+      {/* DELETE MODAL */}
       {showDelete && (
         <ConfirmDeleteModal
           user={selectedUser}

@@ -125,8 +125,6 @@
 // export default mongoose.model("User", userSchema);
 
 
-
-
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -137,7 +135,7 @@ const leaveConfigSchema = {
 
 const userSchema = new mongoose.Schema(
   {
-    /* ================= BASIC INFO =================*/
+    /* ================= BASIC INFO ================= */
     name: { type: String, required: true },
 
     email: {
@@ -157,12 +155,12 @@ const userSchema = new mongoose.Schema(
         "manager",
         "employee",
         "intern",
-        "marketing", // ✅ NEW ROLE ADDED
+        "marketing", // ✅ ADDED (Option A)
       ],
       default: "intern",
     },
 
-    /* 💰 REVENUE (CACHED TOTAL – VERY IMPORTANT) */
+    /* 💰 REVENUE */
     revenue: {
       type: Number,
       default: 0,
@@ -217,6 +215,7 @@ userSchema.pre("save", async function (next) {
    🧠 LEAVE NORMALIZATION
 ===================================================== */
 userSchema.pre("save", function (next) {
+  // Intern gets 0 leaves
   if (this.role === "intern") {
     this.leaves = {
       sick: { total: 0 },
@@ -225,6 +224,7 @@ userSchema.pre("save", function (next) {
     return next();
   }
 
+  // All others (admin, hr, manager, employee, marketing) get default leaves
   if (!this.leaves) {
     this.leaves = {
       sick: { total: 6 },

@@ -24,7 +24,7 @@
 //   });
 
 //   /* -------------------------------
-//         FETCH MANAGERS (SAFE)
+//         FETCH MANAGERS
 //   -------------------------------- */
 //   useEffect(() => {
 //     const fetchManagers = async () => {
@@ -49,7 +49,6 @@
 //     fetchManagers();
 //   }, []);
 
-//   // ✅ Always array-safe
 //   const managers = useMemo(
 //     () => (Array.isArray(rawManagers) ? rawManagers : []),
 //     [rawManagers]
@@ -61,7 +60,6 @@
 //   const handleChange = (e) => {
 //     const { name, value } = e.target;
 
-//     // 🔥 RESET FIELDS ON ROLE CHANGE
 //     if (name === "role") {
 //       setForm((prev) => ({
 //         ...prev,
@@ -88,8 +86,12 @@
 //       return;
 //     }
 
-//     if (form.role === "intern" && !form.manager) {
-//       alert("Please assign a manager to the intern.");
+//     // 🔥 Marketing also requires manager
+//     if (
+//       ["intern", "marketing"].includes(form.role) &&
+//       !form.manager
+//     ) {
+//       alert("Please assign a manager.");
 //       return;
 //     }
 
@@ -131,6 +133,8 @@
 
 //         {/* FORM */}
 //         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+//           {/* BASIC */}
 //           <input
 //             type="text"
 //             name="name"
@@ -178,13 +182,15 @@
 //             className="border rounded-lg p-2"
 //           >
 //             <option value="admin">Admin</option>
+//             <option value="hr">HR</option>
 //             <option value="manager">Manager</option>
 //             <option value="employee">Probation/Employee</option>
 //             <option value="intern">Intern</option>
+//             <option value="marketing">Marketing</option> {/* ✅ NEW */}
 //           </select>
 
-//           {/* INTERN */}
-//           {form.role === "intern" && (
+//           {/* INTERN + MARKETING */}
+//           {(form.role === "intern" || form.role === "marketing") && (
 //             <>
 //               <select
 //                 name="manager"
@@ -298,6 +304,327 @@
 
 // export default AddUserPage;
 
+// import React, { useState, useEffect, useMemo } from "react";
+// import { useNavigate } from "react-router-dom";
+// import api from "../api/axios";
+// import { Save, ArrowLeft } from "lucide-react";
+
+// const AddUserPage = () => {
+//   const navigate = useNavigate();
+
+//   const [rawUsers, setRawUsers] = useState([]);
+//   const [submitting, setSubmitting] = useState(false);
+
+//   const [form, setForm] = useState({
+//     name: "",
+//     email: "",
+//     phone: "",
+//     password: "",
+//     role: "intern",
+//     teamName: "",
+//     position: "",
+//     manager: "",
+//     joiningDate: "",
+//     birthday: "",
+//     avatar: "",
+//   });
+
+//   /* -------------------------------
+//         FETCH ALL USERS
+//   -------------------------------- */
+//   useEffect(() => {
+//     const fetchUsers = async () => {
+//       try {
+//         const res = await api.get("/users");
+//         const normalized = Array.isArray(res.data)
+//           ? res.data
+//           : Array.isArray(res.data?.data)
+//           ? res.data.data
+//           : [];
+
+//         setRawUsers(normalized);
+//       } catch (error) {
+//         console.error("Error fetching users:", error);
+//         setRawUsers([]);
+//       }
+//     };
+
+//     fetchUsers();
+//   }, []);
+
+//   const managers = useMemo(
+//     () => rawUsers.filter((u) => u.role === "manager"),
+//     [rawUsers]
+//   );
+
+//   const marketingManagers = useMemo(
+//     () => rawUsers.filter((u) => u.role === "marketing_manager"),
+//     [rawUsers]
+//   );
+
+//   /* -------------------------------
+//         INPUT HANDLER
+//   -------------------------------- */
+//   const handleChange = (e) => {
+//     const { name, value } = e.target;
+
+//     if (name === "role") {
+//       setForm((prev) => ({
+//         ...prev,
+//         role: value,
+//         manager: "",
+//         teamName: "",
+//         position: "",
+//       }));
+//       return;
+//     }
+
+//     setForm((prev) => ({ ...prev, [name]: value }));
+//   };
+
+//   /* -------------------------------
+//         SUBMIT HANDLER
+//   -------------------------------- */
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     if (submitting) return;
+
+//     if (!form.name || !form.email || !form.password) {
+//       alert("Please fill all required fields.");
+//       return;
+//     }
+
+//     // Require manager only for intern & marketing_intern
+//     if (
+//       ["intern", "marketing_intern"].includes(form.role) &&
+//       !form.manager
+//     ) {
+//       alert("Please assign a manager.");
+//       return;
+//     }
+
+//     try {
+//       setSubmitting(true);
+
+//       const res = await api.post("/users", form);
+
+//       alert(
+//         `✅ User ${res.data?.user?.name || ""} created successfully!`
+//       );
+//       navigate("/admin/manage-users");
+//     } catch (error) {
+//       console.error("Error adding user:", error);
+//       alert(
+//         error.response?.data?.message ||
+//           "❌ Failed to create user."
+//       );
+//     } finally {
+//       setSubmitting(false);
+//     }
+//   };
+
+//   return (
+//     <div className="p-8 bg-gray-50 min-h-screen flex justify-center items-center">
+//       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+//         <div className="flex items-center justify-between mb-6">
+//           <h2 className="text-2xl font-bold text-gray-800">
+//             Add New User
+//           </h2>
+//           <button
+//             onClick={() => navigate(-1)}
+//             className="text-gray-600 hover:text-gray-800 flex items-center"
+//           >
+//             <ArrowLeft size={18} className="mr-1" /> Back
+//           </button>
+//         </div>
+
+//         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+//           <input
+//             type="text"
+//             name="name"
+//             placeholder="Full Name"
+//             value={form.name}
+//             onChange={handleChange}
+//             required
+//             className="border rounded-lg p-2"
+//           />
+
+//           <input
+//             type="email"
+//             name="email"
+//             placeholder="Email"
+//             value={form.email}
+//             onChange={handleChange}
+//             required
+//             className="border rounded-lg p-2"
+//           />
+
+//           <input
+//             type="text"
+//             name="phone"
+//             placeholder="Phone"
+//             value={form.phone}
+//             onChange={handleChange}
+//             className="border rounded-lg p-2"
+//           />
+
+//           <input
+//             type="password"
+//             name="password"
+//             placeholder="Temporary Password"
+//             value={form.password}
+//             onChange={handleChange}
+//             required
+//             className="border rounded-lg p-2"
+//           />
+
+//           {/* ROLE SELECT */}
+//           <select
+//             name="role"
+//             value={form.role}
+//             onChange={handleChange}
+//             className="border rounded-lg p-2"
+//           >
+//             <option value="admin">Admin</option>
+//             <option value="hr">HR</option>
+//             <option value="manager">Manager</option>
+//             <option value="marketing_manager">Marketing Manager</option>
+//             <option value="employee">Probation/Employee</option>
+//             <option value="intern">Intern</option>
+//             <option value="marketing_intern">Marketing Intern</option>
+//           </select>
+
+//           {/* INTERN */}
+//           {form.role === "intern" && (
+//             <>
+//               <select
+//                 name="manager"
+//                 value={form.manager}
+//                 onChange={handleChange}
+//                 required
+//                 className="border rounded-lg p-2"
+//               >
+//                 <option value="">Select Manager</option>
+//                 {managers.map((m) => (
+//                   <option key={m._id} value={m._id}>
+//                     {m.name}
+//                   </option>
+//                 ))}
+//               </select>
+
+//               <input
+//                 type="text"
+//                 name="teamName"
+//                 placeholder="Team Name"
+//                 value={form.teamName}
+//                 onChange={handleChange}
+//                 className="border rounded-lg p-2"
+//               />
+//             </>
+//           )}
+
+//           {/* MARKETING INTERN */}
+//           {form.role === "marketing_intern" && (
+//             <select
+//               name="manager"
+//               value={form.manager}
+//               onChange={handleChange}
+//               required
+//               className="border rounded-lg p-2"
+//             >
+//               <option value="">Select Marketing Manager</option>
+//               {marketingManagers.map((m) => (
+//                 <option key={m._id} value={m._id}>
+//                   {m.name}
+//                 </option>
+//               ))}
+//             </select>
+//           )}
+
+//           {/* EMPLOYEE */}
+//           {form.role === "employee" && (
+//             <>
+//               <input
+//                 type="text"
+//                 name="position"
+//                 placeholder="Position"
+//                 value={form.position}
+//                 onChange={handleChange}
+//                 className="border rounded-lg p-2"
+//               />
+
+//               <select
+//                 name="manager"
+//                 value={form.manager}
+//                 onChange={handleChange}
+//                 className="border rounded-lg p-2"
+//               >
+//                 <option value="">(Optional) Assign Manager</option>
+//                 {managers.map((m) => (
+//                   <option key={m._id} value={m._id}>
+//                     {m.name}
+//                   </option>
+//                 ))}
+//               </select>
+//             </>
+//           )}
+
+//           {/* MANAGER */}
+//           {form.role === "manager" && (
+//             <input
+//               type="text"
+//               name="teamName"
+//               placeholder="Team Name"
+//               value={form.teamName}
+//               onChange={handleChange}
+//               className="border rounded-lg p-2"
+//             />
+//           )}
+
+//           <label className="text-sm text-gray-600">Joining Date</label>
+//           <input
+//             type="date"
+//             name="joiningDate"
+//             value={form.joiningDate}
+//             onChange={handleChange}
+//             className="border rounded-lg p-2"
+//           />
+
+//           <label className="text-sm text-gray-600">Birthday</label>
+//           <input
+//             type="date"
+//             name="birthday"
+//             value={form.birthday}
+//             onChange={handleChange}
+//             className="border rounded-lg p-2"
+//           />
+
+//           <input
+//             type="text"
+//             name="avatar"
+//             placeholder="Avatar Image URL (optional)"
+//             value={form.avatar}
+//             onChange={handleChange}
+//             className="border rounded-lg p-2"
+//           />
+
+//           <button
+//             type="submit"
+//             disabled={submitting}
+//             className="flex items-center justify-center bg-blue-600 hover:bg-blue-700
+//               disabled:opacity-60 disabled:cursor-not-allowed
+//               text-white py-2 rounded-lg gap-2 transition"
+//           >
+//             <Save size={18} /> {submitting ? "Saving..." : "Save User"}
+//           </button>
+//         </form>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default AddUserPage;
+
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
@@ -306,7 +633,7 @@ import { Save, ArrowLeft } from "lucide-react";
 const AddUserPage = () => {
   const navigate = useNavigate();
 
-  const [rawManagers, setRawManagers] = useState([]);
+  const [rawUsers, setRawUsers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -323,40 +650,34 @@ const AddUserPage = () => {
     avatar: "",
   });
 
-  /* -------------------------------
-        FETCH MANAGERS
-  -------------------------------- */
+  /* ================= FETCH USERS ================= */
   useEffect(() => {
-    const fetchManagers = async () => {
+    const fetchUsers = async () => {
       try {
         const res = await api.get("/users");
-
         const normalized = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data?.data)
           ? res.data.data
           : [];
 
-        setRawManagers(
-          normalized.filter((u) => u.role === "manager")
-        );
+        setRawUsers(normalized);
       } catch (error) {
-        console.error("Error fetching managers:", error);
-        setRawManagers([]);
+        console.error("Error fetching users:", error);
+        setRawUsers([]);
       }
     };
 
-    fetchManagers();
+    fetchUsers();
   }, []);
 
+  /* Only real managers (not marketing) */
   const managers = useMemo(
-    () => (Array.isArray(rawManagers) ? rawManagers : []),
-    [rawManagers]
+    () => rawUsers.filter((u) => u.role === "manager"),
+    [rawUsers]
   );
 
-  /* -------------------------------
-        INPUT HANDLER
-  -------------------------------- */
+  /* ================= INPUT HANDLER ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -374,9 +695,7 @@ const AddUserPage = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* -------------------------------
-        SUBMIT HANDLER
-  -------------------------------- */
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
@@ -386,11 +705,8 @@ const AddUserPage = () => {
       return;
     }
 
-    // 🔥 Marketing also requires manager
-    if (
-      ["intern", "marketing"].includes(form.role) &&
-      !form.manager
-    ) {
+    // Only intern requires manager (admin flow)
+    if (form.role === "intern" && !form.manager) {
       alert("Please assign a manager.");
       return;
     }
@@ -398,17 +714,19 @@ const AddUserPage = () => {
     try {
       setSubmitting(true);
 
-      const res = await api.post("/users", form);
+      const payload = {
+        ...form,
+        manager: form.role === "intern" ? form.manager : null,
+      };
 
-      alert(
-        `✅ User ${res.data?.user?.name || ""} created successfully!`
-      );
+      const res = await api.post("/users", payload);
+
+      alert(`✅ User ${res.data?.user?.name || ""} created successfully!`);
       navigate("/admin/manage-users");
     } catch (error) {
       console.error("Error adding user:", error);
       alert(
-        error.response?.data?.message ||
-          "❌ Failed to create user."
+        error.response?.data?.message || "❌ Failed to create user."
       );
     } finally {
       setSubmitting(false);
@@ -418,7 +736,6 @@ const AddUserPage = () => {
   return (
     <div className="p-8 bg-gray-50 min-h-screen flex justify-center items-center">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        {/* HEADER */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">
             Add New User
@@ -431,10 +748,7 @@ const AddUserPage = () => {
           </button>
         </div>
 
-        {/* FORM */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
-          {/* BASIC */}
           <input
             type="text"
             name="name"
@@ -474,7 +788,7 @@ const AddUserPage = () => {
             className="border rounded-lg p-2"
           />
 
-          {/* ROLE */}
+          {/* ROLE SELECT */}
           <select
             name="role"
             value={form.role}
@@ -484,13 +798,13 @@ const AddUserPage = () => {
             <option value="admin">Admin</option>
             <option value="hr">HR</option>
             <option value="manager">Manager</option>
+            <option value="marketing">Marketing</option>
             <option value="employee">Probation/Employee</option>
             <option value="intern">Intern</option>
-            <option value="marketing">Marketing</option> {/* ✅ NEW */}
           </select>
 
-          {/* INTERN + MARKETING */}
-          {(form.role === "intern" || form.role === "marketing") && (
+          {/* INTERN ONLY */}
+          {form.role === "intern" && (
             <>
               <select
                 name="manager"
@@ -546,8 +860,8 @@ const AddUserPage = () => {
             </>
           )}
 
-          {/* MANAGER */}
-          {form.role === "manager" && (
+          {/* MANAGER OR MARKETING */}
+          {(form.role === "manager" || form.role === "marketing") && (
             <input
               type="text"
               name="teamName"
@@ -558,7 +872,6 @@ const AddUserPage = () => {
             />
           )}
 
-          {/* DATES */}
           <label className="text-sm text-gray-600">Joining Date</label>
           <input
             type="date"
@@ -577,7 +890,6 @@ const AddUserPage = () => {
             className="border rounded-lg p-2"
           />
 
-          {/* AVATAR */}
           <input
             type="text"
             name="avatar"
