@@ -8,6 +8,7 @@
 
 // const userSchema = new mongoose.Schema(
 //   {
+//     /* ================= BASIC INFO ================= */
 //     name: { type: String, required: true },
 
 //     email: {
@@ -25,6 +26,12 @@
 //       default: "intern",
 //     },
 
+//     /* 💰 REVENUE (CACHED TOTAL – VERY IMPORTANT) */
+//     revenue: {
+//       type: Number,
+//       default: 0,
+//     },
+
 //     phone: { type: String, default: "" },
 //     avatar: { type: String, default: "" },
 
@@ -40,6 +47,7 @@
 //       default: null,
 //     },
 
+//     /* ================= LEAVES ================= */
 //     leaves: {
 //       sick: leaveConfigSchema,
 //       casual: leaveConfigSchema,
@@ -52,14 +60,16 @@
 //       },
 //     ],
 
-//     /* 🔐 FORGOT PASSWORD */
+//     /* ================= FORGOT PASSWORD ================= */
 //     resetPasswordToken: { type: String, default: null },
 //     resetPasswordExpires: { type: Date, default: null },
 //   },
 //   { timestamps: true }
 // );
 
-// /* 🔐 PASSWORD HASH */
+// /* =====================================================
+//    🔐 PASSWORD HASHING
+// ===================================================== */
 // userSchema.pre("save", async function (next) {
 //   if (!this.isModified("password")) return next();
 //   const salt = await bcrypt.genSalt(10);
@@ -67,7 +77,9 @@
 //   next();
 // });
 
-// /* 🧠 LEAVE NORMALIZATION */
+// /* =====================================================
+//    🧠 LEAVE NORMALIZATION
+// ===================================================== */
 // userSchema.pre("save", function (next) {
 //   if (this.role === "intern") {
 //     this.leaves = {
@@ -87,12 +99,16 @@
 //   next();
 // });
 
-// /* 🔐 PASSWORD CHECK */
+// /* =====================================================
+//    🔐 PASSWORD CHECK
+// ===================================================== */
 // userSchema.methods.comparePassword = async function (candidate) {
 //   return bcrypt.compare(candidate, this.password);
 // };
 
-// /* 🔁 PASSWORD RESET TOKEN (USE THIS) */
+// /* =====================================================
+//    🔁 PASSWORD RESET TOKEN
+// ===================================================== */
 // userSchema.methods.generatePasswordReset = function () {
 //   const rawToken = crypto.randomBytes(32).toString("hex");
 
@@ -108,6 +124,9 @@
 
 // export default mongoose.model("User", userSchema);
 
+
+
+
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -118,7 +137,7 @@ const leaveConfigSchema = {
 
 const userSchema = new mongoose.Schema(
   {
-    /* ================= BASIC INFO ================= */
+    /* ================= BASIC INFO =================*/
     name: { type: String, required: true },
 
     email: {
@@ -132,7 +151,14 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["admin", "hr", "manager", "employee", "intern"],
+      enum: [
+        "admin",
+        "hr",
+        "manager",
+        "employee",
+        "intern",
+        "marketing", // ✅ NEW ROLE ADDED
+      ],
       default: "intern",
     },
 

@@ -1,5 +1,6 @@
 // import express from "express";
 // import mongoose from "mongoose";
+// import bcrypt from "bcryptjs";
 // import User from "../models/User.js";
 // import Revenue from "../models/Revenue.js";
 // import { protect } from "../middleware/auth.js";
@@ -25,8 +26,6 @@
 
 // /* =====================================================
 //    CREATE USER
-//    Admin → any
-//    Manager → intern / employee (auto-assign)
 // ===================================================== */
 // router.post(
 //   "/",
@@ -103,7 +102,7 @@
 //           email: email.toLowerCase(),
 //           phone,
 //           role,
-//           manager: loggedInUser._id, // 🔒 auto assign
+//           manager: loggedInUser._id,
 //           position: role === "employee" ? position : "",
 //           teamName,
 //           joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
@@ -160,15 +159,12 @@
 //       return res.status(404).json({ message: "User not found" });
 //     }
 
-//     // Admin → anyone
 //     if (req.user.role === "admin") return res.json(targetUser);
 
-//     // Self
 //     if (req.user._id.toString() === targetUser._id.toString()) {
 //       return res.json(targetUser);
 //     }
 
-//     // Manager → own team
 //     if (
 //       req.user.role === "manager" &&
 //       targetUser.manager?.toString() === req.user._id.toString()
@@ -184,12 +180,11 @@
 // });
 
 // /* =====================================================
-//    UPDATE USER
-//    Admin → anyone
-//    User → self only
+//    UPDATE USER (FIXED)
 // ===================================================== */
 // router.put("/:id", protect, async (req, res) => {
 //   try {
+//     // 🔐 Permission check
 //     if (
 //       req.user.role !== "admin" &&
 //       req.user._id.toString() !== req.params.id
@@ -197,18 +192,50 @@
 //       return res.status(403).json({ message: "Unauthorized" });
 //     }
 
-//     const updated = await User.findByIdAndUpdate(
+//     /* ================= SANITIZATION ================= */
+
+//     // ❌ Never allow password update here
+//     delete req.body.password;
+//     delete req.body.resetPasswordToken;
+//     delete req.body.resetPasswordExpires;
+
+//     // 🧹 FIX: empty manager breaks MongoDB
+//     if (
+//       req.body.manager === "" ||
+//       req.body.manager === undefined
+//     ) {
+//       delete req.body.manager;
+//     }
+
+//     // 🧠 If role does NOT require manager → force null
+//     if (!["intern", "employee"].includes(req.body.role)) {
+//       req.body.manager = null;
+//     }
+
+//     /* ================= UPDATE ================= */
+//     const updatedUser = await User.findByIdAndUpdate(
 //       req.params.id,
-//       req.body,
-//       { new: true }
+//       { $set: req.body },
+//       {
+//         new: true,
+//         runValidators: true,
+//       }
 //     ).select("-password");
 
-//     res.json({ success: true, user: updated });
+//     if (!updatedUser) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     res.json({ success: true, user: updatedUser });
 //   } catch (err) {
-//     console.error("Update error:", err);
-//     res.status(500).json({ message: "Server error" });
+//     console.error("Update user error:", err);
+//     res.status(500).json({
+//       message: "Failed to update user",
+//       error: err.message,
+//     });
 //   }
 // });
+
 
 // /* =====================================================
 //    DELETE USER (ADMIN ONLY)
@@ -237,7 +264,7 @@
 // );
 
 // /* =====================================================
-//    USER PERFORMANCE (ADMIN / MANAGER / SELF)
+//    USER PERFORMANCE
 // ===================================================== */
 // router.get("/:id/performance", protect, async (req, res) => {
 //   try {
@@ -280,11 +307,47 @@
 //     res.status(500).json({ message: "Server error" });
 //   }
 // });
+// /* =====================================================
+//    ADMIN → RESET USER PASSWORD (FINAL FIX)
+// ===================================================== */
+// router.post(
+//   "/:id/reset-password",
+//   protect,
+//   authorizeRoles("admin"),
+//   async (req, res) => {
+//     try {
+//       const { password } = req.body;
+
+//       if (!password || password.length < 6) {
+//         return res
+//           .status(400)
+//           .json({ message: "Password must be at least 6 characters" });
+//       }
+
+//       const user = await User.findById(req.params.id);
+//       if (!user) {
+//         return res.status(404).json({ message: "User not found" });
+//       }
+
+//       // ✅ IMPORTANT: set plain password
+//       user.password = password;
+
+//       // ✅ pre("save") will hash ONCE
+//       await user.save();
+
+//       res.json({
+//         success: true,
+//         message: "Password updated successfully",
+//       });
+//     } catch (err) {
+//       console.error("Admin reset password error:", err);
+//       res.status(500).json({ message: "Server error" });
+//     }
+//   }
+// );
+
 
 // export default router;
-
-
-
 
 import express from "express";
 import mongoose from "mongoose";
@@ -346,10 +409,10 @@ router.post(
 
       /* ========== ADMIN FLOW ========== */
       if (loggedInUser.role === "admin") {
-        if (["intern", "employee"].includes(role) && !manager) {
+        if (["intern", "employee", "marketing"].includes(role) && !manager) {
           return res
             .status(400)
-            .json({ message: "Intern/Employee must have a manager" });
+            .json({ message: "Intern/Employee/Marketing must have a manager" });
         }
 
         const newUser = await User.create({
@@ -357,7 +420,9 @@ router.post(
           email: email.toLowerCase(),
           phone,
           role,
-          manager: ["intern", "employee"].includes(role) ? manager : null,
+          manager: ["intern", "employee", "marketing"].includes(role)
+            ? manager
+            : null,
           position: role === "employee" ? position : "",
           teamName,
           joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
@@ -365,7 +430,7 @@ router.post(
           password: password || "Glow@123",
         });
 
-        if (["intern", "employee"].includes(role)) {
+        if (["intern", "employee", "marketing"].includes(role)) {
           await User.findByIdAndUpdate(manager, {
             $addToSet: { managedInterns: newUser._id },
           });
@@ -379,9 +444,9 @@ router.post(
 
       /* ========== MANAGER FLOW ========== */
       if (loggedInUser.role === "manager") {
-        if (!["intern", "employee"].includes(role)) {
+        if (!["intern", "employee", "marketing"].includes(role)) {
           return res.status(403).json({
-            message: "Managers can only add interns or employees",
+            message: "Managers can only add interns, employees, or marketing",
           });
         }
 
@@ -468,11 +533,10 @@ router.get("/:id", protect, async (req, res) => {
 });
 
 /* =====================================================
-   UPDATE USER (FIXED)
+   UPDATE USER
 ===================================================== */
 router.put("/:id", protect, async (req, res) => {
   try {
-    // 🔐 Permission check
     if (
       req.user.role !== "admin" &&
       req.user._id.toString() !== req.params.id
@@ -480,27 +544,18 @@ router.put("/:id", protect, async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    /* ================= SANITIZATION ================= */
-
-    // ❌ Never allow password update here
     delete req.body.password;
     delete req.body.resetPasswordToken;
     delete req.body.resetPasswordExpires;
 
-    // 🧹 FIX: empty manager breaks MongoDB
-    if (
-      req.body.manager === "" ||
-      req.body.manager === undefined
-    ) {
+    if (req.body.manager === "" || req.body.manager === undefined) {
       delete req.body.manager;
     }
 
-    // 🧠 If role does NOT require manager → force null
-    if (!["intern", "employee"].includes(req.body.role)) {
+    if (!["intern", "employee", "marketing"].includes(req.body.role)) {
       req.body.manager = null;
     }
 
-    /* ================= UPDATE ================= */
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
@@ -523,7 +578,6 @@ router.put("/:id", protect, async (req, res) => {
     });
   }
 });
-
 
 /* =====================================================
    DELETE USER (ADMIN ONLY)
@@ -595,8 +649,9 @@ router.get("/:id/performance", protect, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 /* =====================================================
-   ADMIN → RESET USER PASSWORD (FINAL FIX)
+   ADMIN → RESET USER PASSWORD
 ===================================================== */
 router.post(
   "/:id/reset-password",
@@ -617,10 +672,7 @@ router.post(
         return res.status(404).json({ message: "User not found" });
       }
 
-      // ✅ IMPORTANT: set plain password
       user.password = password;
-
-      // ✅ pre("save") will hash ONCE
       await user.save();
 
       res.json({
@@ -633,6 +685,5 @@ router.post(
     }
   }
 );
-
 
 export default router;

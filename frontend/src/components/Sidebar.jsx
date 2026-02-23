@@ -166,6 +166,7 @@ const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
 
   /* ===============================
      ROLE-BASED LINKS
+   - Admin: Dashboard, Manage Users, Employees, Interns, Revenue, Announcements..
   =============================== */
   const links = useMemo(() => {
     if (!user) return [];
@@ -285,7 +286,7 @@ const Sidebar = ({ onLogout, isOpen, setIsOpen }) => {
         </button>
 
         <p className="text-[11px] text-orange-100 text-center mt-4 opacity-70">
-          © 2025 Glowlogics
+          © 2024 Glowlogics
         </p>
       </div>
     </motion.aside>
