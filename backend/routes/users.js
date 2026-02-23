@@ -1951,6 +1951,8 @@
 // });
 
 // export default router;
+
+
 import express from "express";
 import mongoose from "mongoose";
 import User from "../models/User.js";
@@ -2219,6 +2221,36 @@ router.get("/:id/performance", protect, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+/* =====================================================
+   DELETE USER (ADMIN ONLY)
+===================================================== */
+router.delete(
+  "/:id",
+  protect,
+  authorizeRoles("admin"),
+  async (req, res) => {
+    try {
+      const user = await User.findByIdAndDelete(req.params.id);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Remove from manager's managedInterns
+      if (user.manager) {
+        await User.findByIdAndUpdate(user.manager, {
+          $pull: { managedInterns: user._id },
+        });
+      }
+
+      res.json({ success: true, message: "User deleted successfully" });
+    } catch (err) {
+      console.error("Delete user error:", err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
 
 /* =====================================================
    UPDATE USER
