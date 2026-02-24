@@ -1,4 +1,3 @@
-// backend/models/OfficeConfig.js
 import mongoose from "mongoose";
 
 const officeConfigSchema = new mongoose.Schema(

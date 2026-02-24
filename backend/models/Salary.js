@@ -1,6 +1,4 @@
-// backend/models/Salary.js
 import mongoose from "mongoose";
-
 const salarySchema = new mongoose.Schema(
   {
     user: {

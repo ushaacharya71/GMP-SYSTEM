@@ -87,7 +87,8 @@ const ManagerRevenue = () => {
         <Navbar user={manager} />
 
         {/* HEADER */}
-        <section className="relative mt-6 overflow-hidden rounded-[28px]
+        <section
+          className="relative mt-6 overflow-hidden rounded-[28px]
           bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400
           text-white p-6 sm:p-8 shadow-2xl"
         >
@@ -101,96 +102,92 @@ const ManagerRevenue = () => {
 
         {/* CONTENT */}
         {users.length === 0 ? (
-          <div className="mt-10 text-gray-500">
-            No users assigned to you.
-          </div>
+          <div className="mt-10 text-gray-500">No users assigned to you.</div>
         ) : (
           <>
             {/* DESKTOP TABLE */}
-           <div className="hidden lg:block mt-10 bg-white border rounded-2xl shadow-sm
+            <div
+              className="hidden lg:block mt-10 bg-white border rounded-2xl shadow-sm
   overflow-x-auto max-w-6xl mx-auto"
->
-  <table className="w-full text-sm border-collapse">
-    <thead className="bg-gray-50 text-gray-600">
-      <tr>
-        <th className="p-4 text-left">Employee</th>
-        <th className="p-4 text-center">Role</th>
-        <th className="p-4 text-center">Date</th>
-        <th className="p-4 text-center">Amount (₹)</th>
-        <th className="p-4 text-center">Description</th>
-        <th className="p-4 text-center">Action</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {users.map((u) => (
-        <tr
-          key={u._id}
-          className="border-t hover:bg-gray-50 align-middle"
-        >
-          {/* EMPLOYEE */}
-          <td className="p-4 font-medium text-left whitespace-nowrap">
-            {u.name}
-          </td>
-
-          {/* ROLE */}
-          <td className="p-4 text-center capitalize">
-            {u.role}
-          </td>
-
-          {/* DATE */}
-          <td className="p-4 text-center">
-            <input
-              type="date"
-              value={form[u._id]?.date || today}
-              onChange={(e) =>
-                handleChange(u._id, "date", e.target.value)
-              }
-              className="border rounded-lg px-3 py-2 text-center w-40"
-            />
-          </td>
-
-          {/* AMOUNT */}
-          <td className="p-4 text-center">
-            <input
-              type="number"
-              value={form[u._id]?.amount || ""}
-              onChange={(e) =>
-                handleChange(u._id, "amount", e.target.value)
-              }
-              className="border rounded-lg px-3 py-2 text-center w-32"
-            />
-          </td>
-
-          {/* DESCRIPTION */}
-          <td className="p-4 text-center">
-            <input
-              type="text"
-              value={form[u._id]?.description || ""}
-              onChange={(e) =>
-                handleChange(u._id, "description", e.target.value)
-              }
-              className="border rounded-lg px-3 py-2 w-64"
-            />
-          </td>
-
-          {/* ACTION */}
-          <td className="p-4 text-center">
-            <button
-              onClick={() => handleSubmit(u._id)}
-              disabled={loadingUserId === u._id}
-              className="bg-orange-600 hover:bg-orange-700
-                text-white px-5 py-2 rounded-xl"
             >
-              {loadingUserId === u._id ? "Saving…" : "Add"}
-            </button>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+              <table className="w-full text-sm border-collapse">
+                <thead className="bg-gray-50 text-gray-600">
+                  <tr>
+                    <th className="p-4 text-left">Employee</th>
+                    <th className="p-4 text-center">Role</th>
+                    <th className="p-4 text-center">Date</th>
+                    <th className="p-4 text-center">Amount (₹)</th>
+                    <th className="p-4 text-center">Description</th>
+                    <th className="p-4 text-center">Action</th>
+                  </tr>
+                </thead>
 
+                <tbody>
+                  {users.map((u) => (
+                    <tr
+                      key={u._id}
+                      className="border-t hover:bg-gray-50 align-middle"
+                    >
+                      {/* EMPLOYEE */}
+                      <td className="p-4 font-medium text-left whitespace-nowrap">
+                        {u.name}
+                      </td>
+
+                      {/* ROLE */}
+                      <td className="p-4 text-center capitalize">{u.role}</td>
+
+                      {/* DATE */}
+                      <td className="p-4 text-center">
+                        <input
+                          type="date"
+                          value={form[u._id]?.date || today}
+                          onChange={(e) =>
+                            handleChange(u._id, "date", e.target.value)
+                          }
+                          className="border rounded-lg px-3 py-2 text-center w-40"
+                        />
+                      </td>
+
+                      {/* AMOUNT */}
+                      <td className="p-4 text-center">
+                        <input
+                          type="number"
+                          value={form[u._id]?.amount || ""}
+                          onChange={(e) =>
+                            handleChange(u._id, "amount", e.target.value)
+                          }
+                          className="border rounded-lg px-3 py-2 text-center w-32"
+                        />
+                      </td>
+
+                      {/* DESCRIPTION */}
+                      <td className="p-4 text-center">
+                        <input
+                          type="text"
+                          value={form[u._id]?.description || ""}
+                          onChange={(e) =>
+                            handleChange(u._id, "description", e.target.value)
+                          }
+                          className="border rounded-lg px-3 py-2 w-64"
+                        />
+                      </td>
+
+                      {/* ACTION */}
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => handleSubmit(u._id)}
+                          disabled={loadingUserId === u._id}
+                          className="bg-orange-600 hover:bg-orange-700
+                text-white px-5 py-2 rounded-xl"
+                        >
+                          {loadingUserId === u._id ? "Saving…" : "Add"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {/* MOBILE CARDS */}
             <div className="lg:hidden mt-10 space-y-4">

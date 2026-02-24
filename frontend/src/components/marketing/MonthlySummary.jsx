@@ -1,25 +1,3 @@
-// import React from "react";
-
-// const MonthlySummary = ({ summary }) => {
-//   if (!summary.length) return null;
-
-//   return (
-//     <div className="bg-white p-6 rounded-xl shadow-md">
-//       <h2 className="text-xl font-semibold mb-4">
-//         Monthly Summary
-//       </h2>
-
-//       {summary.map((item, index) => (
-//         <div key={index} className="mb-2">
-//           <p>Total Leads: {item.totalLeads}</p>
-//           <p>Total Forms: {item.totalForms}</p>
-//         </div>
-//       ))}
-//     </div>
-//   );
-// };
-
-// export default MonthlySummary;
 import React from "react";
 
 const MonthlySummary = ({ summary }) => {
