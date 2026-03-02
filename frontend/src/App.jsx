@@ -15,12 +15,13 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import InternDashboard from "./pages/InternDashboard";
-import MarketingDashboard from "./pages/MarketingDashboard";
+
 
 /* MANAGER PAGES */
 import ManagerStipend from "./pages/ManagerStipend";
 import ManagerRevenue from "./pages/ManagerRevenue";
 import ManagerViewDashboard from "./pages/ManagerViewDashboard";
+
 
 /* ADMIN / SHARED */
 import ManageUsers from "./pages/ManageUsers";
@@ -155,15 +156,7 @@ const AppRoutes = ({ user }) => {
         }
       />
 
-      {/* MARKETING */}
-      <Route
-        path="/marketing"
-        element={
-          <ProtectedRoute allowedRoles={["marketing"]}>
-            <MarketingDashboard />
-          </ProtectedRoute>
-        }
-      />
+
 
       {/* EMPLOYEE */}
       <Route
@@ -190,7 +183,7 @@ const AppRoutes = ({ user }) => {
         path="/admin/user/:id"
         element={
           <ProtectedRoute
-            allowedRoles={["admin", "manager", "marketing", "hr"]}
+            allowedRoles={["admin", "manager","hr"]}
           >
             <UserProfile />
           </ProtectedRoute>

@@ -14,7 +14,6 @@ import performanceRoutes from "./routes/performance.js";
 import salaryRoutes from "./routes/salary.js";
 import leaveRoutes from "./routes/leave.js";
 import birthdayRoutes from "./routes/birthday.js";
-import leadRoutes from "./routes/leadRoutes.js";
 
 // ================= ENV =================
 dotenv.config();
@@ -77,7 +76,6 @@ app.use("/api/performance", performanceRoutes);
 app.use("/api/salary", salaryRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/birthday", birthdayRoutes);
-app.use("/api/leads", leadRoutes);
 
 // ================= GLOBAL ERROR HANDLER =================
 app.use((err, req, res, next) => {

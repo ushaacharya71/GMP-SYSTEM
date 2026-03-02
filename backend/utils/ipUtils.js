@@ -23,7 +23,7 @@ export const getClientIp = (req) => {
     req.socket.remoteAddress ||
     "";
 
-  // 🔥 Remove IPv6 prefix if present (::ffff:106.51.37.233)
+  //  Remove IPv6 prefix if present (::ffff:106.51.37.233)
   if (ip.startsWith("::ffff:")) {
     ip = ip.replace("::ffff:", "");
   }

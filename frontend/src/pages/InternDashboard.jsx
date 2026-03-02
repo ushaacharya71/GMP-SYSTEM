@@ -55,10 +55,7 @@ const InternDashboard = () => {
 
   /* ---------------- TOTAL REVENUE (DERIVED) ---------------- */
   const totalRevenue = useMemo(() => {
-    return performance.reduce(
-      (acc, item) => acc + Number(item.amount || 0),
-      0
-    );
+    return performance.reduce((acc, item) => acc + Number(item.amount || 0), 0);
   }, [performance]);
 
   const handleLogout = () => {
@@ -104,34 +101,33 @@ const InternDashboard = () => {
               </p>
             </div>
 
-           <div className="flex items-center gap-4">
-  {/* Avatar with glow */}
-  <div className="relative group">
-    {/* Glow */}
-    <div
-      className="absolute -inset-1 rounded-full bg-gradient-to-tr
+            <div className="flex items-center gap-4">
+              {/* Avatar with glow */}
+              <div className="relative group">
+                {/* Glow */}
+                <div
+                  className="absolute -inset-1 rounded-full bg-gradient-to-tr
       from-orange-500 to-pink-500 blur opacity-40"
-    />
+                />
 
-    {/* Image */}
-    <img
-      src={
-        user.avatar ||
-        "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
-      }
-      alt="User Avatar"
-      className="relative w-10 h-10 rounded-full object-cover
+                {/* Image */}
+                <img
+                  src={
+                    user.avatar ||
+                    "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
+                  }
+                  alt="User Avatar"
+                  className="relative w-10 h-10 rounded-full object-cover
         ring-2 ring-white/60 shadow-xl"
-    />
-  </div>
+                />
+              </div>
 
-  {/* User info */}
-  <div className="text-sm">
-    <p className="font-semibold">{user.email}</p>
-    <p className="text-white/80 capitalize">{user.role}</p>
-  </div>
-</div>
-
+              {/* User info */}
+              <div className="text-sm">
+                <p className="font-semibold">{user.email}</p>
+                <p className="text-white/80 capitalize">{user.role}</p>
+              </div>
+            </div>
           </div>
 
           <div
@@ -173,9 +169,7 @@ const InternDashboard = () => {
             className="rounded-3xl bg-gradient-to-r from-orange-500 to-amber-500
             text-white p-6 shadow-xl mb-6"
           >
-            <p className="text-sm text-white/80">
-              Total Revenue Contributed
-            </p>
+            <p className="text-sm text-white/80">Total Revenue Contributed</p>
             <p className="text-4xl font-bold mt-2">
               ₹ {totalRevenue.toLocaleString()}
             </p>
