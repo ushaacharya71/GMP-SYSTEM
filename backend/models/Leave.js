@@ -1,12 +1,7 @@
 import mongoose from "mongoose";
-
-/**
- * Leave Schema
- * This model is the SINGLE source of truth for leave sync
- */
 const leaveSchema = new mongoose.Schema(
   {
-    // 👤 User who applied
+    //  User who applied
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -14,14 +9,14 @@ const leaveSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🗂 Leave type
+    //  Leave type
     type: {
       type: String,
       enum: ["sick", "casual"],
       required: true,
     },
 
-    // 📅 Leave duration
+    //  Leave duration
     fromDate: {
       type: Date,
       required: true,
@@ -32,14 +27,14 @@ const leaveSchema = new mongoose.Schema(
       required: true,
     },
 
-    // 📝 Reason
+    //  Reason
     reason: {
       type: String,
       required: true,
       trim: true,
     },
 
-    // 🔁 Status flow
+    //  Status flow
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
@@ -47,27 +42,27 @@ const leaveSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ✅ Approver user
+    // Approver user
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: undefined,
     },
 
-    // ✅ Approver role (NULL SAFE)
+    // Approver role (NULL SAFE)
     approvedByRole: {
       type: String,
       enum: ["manager", "admin"],
       default: undefined, // 🔥 FIXES ENUM ERROR
     },
 
-    // 📊 Total leave days (AUTO CALCULATED)
+    // Total leave days (AUTO CALCULATED)
     totalDays: {
       type: Number,
       min: 1,
     },
 
-    // 🗓 Leave year (CRITICAL for syncing)
+    //  Leave year (CRITICAL for syncing)
     leaveYear: {
       type: Number,
       default: () => new Date().getFullYear(),
@@ -80,7 +75,7 @@ const leaveSchema = new mongoose.Schema(
 );
 
 /**
- * 🔥 AUTO-CALCULATE totalDays (PREVENTS SYNC ISSUES)
+ * AUTO-CALCULATE totalDays (PREVENTS SYNC ISSUES)
  */
 leaveSchema.pre("save", function (next) {
   const from = new Date(this.fromDate);

@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const officeConfigSchema = new mongoose.Schema(
   {
     allowedIPs: {

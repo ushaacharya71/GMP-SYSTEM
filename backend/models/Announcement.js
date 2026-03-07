@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const announcementSchema = new mongoose.Schema(
   {
     title: {
@@ -20,21 +19,21 @@ const announcementSchema = new mongoose.Schema(
       default: "general",
     },
 
-    // ✅ Who created this announcement (Admin)
+    // Who created this announcement (Admin)
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-    // ✅ Role-based visibility (future use)
+    //  Role-based visibility (future use)
     visibleTo: {
       type: [String],
       enum: ["admin", "manager", "employee", "intern"],
       default: ["admin", "manager", "employee", "intern"],
     },
 
-    // ✅ Soft delete (admin can remove safely)
+    // Soft delete (admin can remove safely)
     isDeleted: {
       type: Boolean,
       default: false,
